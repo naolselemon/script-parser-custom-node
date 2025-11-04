@@ -1,5 +1,7 @@
+# This is a test node 
+
 import os
-import fitz  # PyMuPDF
+import fitz  
 
 from .gemini_relay_client import ask_gemini_via_relay
 
@@ -31,8 +33,7 @@ class PDFToParsedScript:
                     "default": "You are an expert script parser. Your task is to take the following raw script text and break it down into a structured list of scenes. Identify the scene heading, action lines, dialogue, and camera directions for each scene. Use '---SCENE BREAK---' to separate each scene.",
                     "multiline": True
                 }),
-                # Note: The model_name is now ignored, as the relay server controls the model.
-                # We leave it in the UI to avoid breaking workflows, but it has no effect.
+                
                 "model_name": ("STRING", {"default": "gemini-pro (via relay)"}),
             }
         }
@@ -47,25 +48,22 @@ class PDFToParsedScript:
         
         # Step 1: Extract text from the PDF (unchanged)
         raw_text = extract_text_from_pdf(pdf_path)
+        print(raw_text)
         if raw_text.startswith("ERROR"):
-            print(raw_text)
             return (raw_text,)
 
-        # Step 2: Call our relay function instead of the Gemini API directly
-        # --- MODIFIED BLOCK ---
+        
         print(f"Sending script to relay server for parsing...")
         full_prompt = f"{parsing_prompt}\n\n--- SCRIPT CONTENT ---\n\n{raw_text}"
         
         # Call the function from our other file
         parsed_script = ask_gemini_via_relay(full_prompt)
         
-        # Check if the relay function returned an error message
         if parsed_script.startswith("Error:"):
-            print(parsed_script) # Print the specific error from the relay
-            return (parsed_script,) # Return the error to the ComfyUI output
+            return (parsed_script,) 
             
         print("Successfully received parsed script via relay.")
-        # --- END OF MODIFIED BLOCK ---
+      
         
-        # Node outputs must always be returned as a tuple
+        
         return (parsed_script,)
