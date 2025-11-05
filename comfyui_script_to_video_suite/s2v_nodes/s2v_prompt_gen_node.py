@@ -14,7 +14,7 @@ def load_master_prompt_from_file(filename: str) -> str:
     except Exception as e:
         return f"ERROR: Could not read prompt file. Reason: {e}"
 
-PROMPT_GENERATION_META_PROMPT = load_master_prompt_from_file("storyboard_master_prompt.txt")
+PROMPT_GENERATION_META_PROMPT = load_master_prompt_from_file("prompt_generation_meta_prompt.txt")
 
 class PromptGenerator:
     """
