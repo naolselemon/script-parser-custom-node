@@ -11,6 +11,7 @@ NODE_CLASS_MAPPINGS = {
     "PromptGenerator_S2V": PromptGenerator,
     "PromptUnpacker_S2V": PromptUnpacker,
     "IterativeExecutor_S2V": IterativeExecutor,
+    "AutoLoraLoader_S2V": AutoLoraLoader_S2V,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -19,6 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptGenerator_S2V": "3. Prompt Generator (S2V)",
     "PromptUnpacker_S2V": "4. Prompt Unpacker (S2V)",
     "IterativeExecutor_S2V": "5. Iterative Executor (S2V)",
+    "AutoLoraLoader_S2V": "6. Gemini Auto LoRA Loader (S2V)",
 }
 
 # --- A confirmation message that your package was loaded ---
