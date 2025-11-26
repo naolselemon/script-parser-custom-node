@@ -4,6 +4,8 @@ from .comfyui_script_to_video_suite.s2v_nodes.s2v_chunker_node import PDFChunker
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_storyboard_node import StoryboardGenerator
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_prompt_gen_node import PromptGenerator
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_executor_nodes import PromptUnpacker, IterativeExecutor
+from .comfyui_script_to_video_suite.s2v_nodes.s2v_auto_lora_node import AutoLoraLoader_S2V
+
 
 NODE_CLASS_MAPPINGS = {
     "PDFChunker_S2V": PDFChunker,
