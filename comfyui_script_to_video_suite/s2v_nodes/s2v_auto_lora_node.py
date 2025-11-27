@@ -32,7 +32,7 @@ class AutoLoraLoader_S2V:
             # Add more here later, e.g., "neo": "neo_v1.safetensors"
         }
         # ---------------------------------------------
-
+        # TODO: Find better lora maping methods 
         
         system_instruction = (
             "You are an entity extraction assistant. "
@@ -42,6 +42,7 @@ class AutoLoraLoader_S2V:
             "If no specific characters are found, return []. "
             "Do not add markdown formatting, explanations, or code blocks."
         )
+        # TODO: make system instruction more robust and also add validation techniques like regex expression.
 
         full_query = f"{system_instruction}\n\nText to analyze: {image_prompt}"
 
@@ -49,7 +50,6 @@ class AutoLoraLoader_S2V:
 
         character_names = []
 
-        # 2. Call the  Relay Client
         try:
             response_text = ask_gemini_via_relay(full_query)
             
@@ -75,7 +75,6 @@ class AutoLoraLoader_S2V:
 
         print(f"🤖 AutoLoRA: Gemini found: {character_names}")
 
-        # 5. Map Characters to Hardcoded Files
        
         files_on_disk = folder_paths.get_filename_list("loras")
         lora_stack = []
