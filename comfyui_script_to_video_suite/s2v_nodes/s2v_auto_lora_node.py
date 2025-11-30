@@ -1,7 +1,8 @@
 import json
 import folder_paths
 from .gemini_relay_client import ask_gemini_via_relay
-
+import os
+import re
 class AutoLoraLoader_S2V:
     """
     Analyzes an image prompt using Gemini to extract character names.
@@ -23,16 +24,66 @@ class AutoLoraLoader_S2V:
     FUNCTION = "process_auto_loras"
     CATEGORY = "Script To Video Suite"
 
-    def process_auto_loras(self, image_prompt, lora_strength):
+    @staticmethod
+    def create_map_from_lora_folder():
+        """
+        Build a map of character_name -> filename from all LoRA files on disk.
+        Cleans filenames by removing version numbers, 'lora' prefixes/suffixes, and other noise.
+        """
+        auto_map = {}
+        files_on_disk = folder_paths.get_filename_list("loras")
         
+        for filename in files_on_disk:
+            name = os.path.splitext(filename)[0]
+            patterns_to_remove = [
+                r'\blora\b', r'\bloras\b', r'^lora_', r'^loras_', r'_lora\b', r'_loras\b',
+                r'v\d+\b', r'_v\d+\b', r'version\d+\b', r'rev\d+\b', r'final\b', r'last\b', r'end\b',
+                r'[_-]?\d+$', r'put_loras_here'
+            ]
+            for pattern in patterns_to_remove:
+                name = re.sub(pattern, '', name, flags=re.IGNORECASE)
+            name = re.sub(r'[_-]+', ' ', name).strip()
+            if name and len(name) > 1:
+                auto_map[name.lower()] = filename
+        return auto_map
+
+    def build_smart_lora_map(self):
+        """
+        Build the final LoRA mapping (SMART_MAP) with deduplication:
+
+        1. Hardcoded mappings take priority.
+        2. Auto-mapped characters are added only if their filename isn't already used.
+        3. Prevents duplicate filenames even if multiple characters would map to the same file.
+        """
+        AUTO_MAP = self.create_map_from_lora_folder()
+
         # --- CONFIGURATION: HARDCODED LORA MAPPING ---
         # Format: "Character Name (lowercase)": "Actual Filename.safetensors"
-        LORA_MAP = {
+        HARDCODED_MAP = {
             "isaac": "isaac_15.safetensors",
             # Add more here later, e.g., "neo": "neo_v1.safetensors"
         }
-        # ---------------------------------------------
-        # TODO: Find better lora maping methods 
+
+        SMART_MAP = {}
+        used_files = set(filename.lower() for filename in HARDCODED_MAP.values())
+
+        # Add hardcoded entries
+        for char_name, filename in HARDCODED_MAP.items():
+            SMART_MAP[char_name] = filename
+            print(f"🛡️  Using hardcoded '{char_name}' -> '{filename}'")
+
+        # Add auto-mapped only if filename not already used
+        for char_name, filename in AUTO_MAP.items():
+            if filename.lower() not in used_files:
+                SMART_MAP[char_name] = filename
+                used_files.add(filename.lower())
+                print(f"🔍 Auto-mapped '{char_name}' -> '{filename}'")
+
+        print(f"✅ SmartMap: Final mapping has {len(SMART_MAP)} entries")
+        return SMART_MAP
+
+    def process_auto_loras(self, image_prompt, lora_strength):
+        LORA_MAP = self.build_smart_lora_map()
         
         system_instruction = (
             "You are an entity extraction assistant. "
@@ -41,8 +92,12 @@ class AutoLoraLoader_S2V:
             "Example output: [\"Isaac\", \"Neo\"] "
             "If no specific characters are found, return []. "
             "Do not add markdown formatting, explanations, or code blocks."
+            "Ignore generic terms like 'man', 'woman', 'person', 'character'. "
+            "If multiple mentions of same character, include only once. "
+            "Do NOT hallucinate names not present. "
+            "Do NOT include descriptions, attributes, or roles."
         )
-        # TODO: make system instruction more robust and also add validation techniques like regex expression.
+
 
         full_query = f"{system_instruction}\n\nText to analyze: {image_prompt}"
 
@@ -58,6 +113,12 @@ class AutoLoraLoader_S2V:
                 return ([],)
 
             cleaned_json = response_text.replace("```json", "").replace("```", "").strip()
+            # Validate JSON format using regex before parsing
+            json_pattern = r'^\s*\[.*\]\s*$'
+            if not re.match(json_pattern, cleaned_json):
+                print(f"⚠️ AutoLoRA: Response doesn't match expected JSON list format: {cleaned_json}")
+                return ([],)
+
             character_names = json.loads(cleaned_json)
             
             if not isinstance(character_names, list):
