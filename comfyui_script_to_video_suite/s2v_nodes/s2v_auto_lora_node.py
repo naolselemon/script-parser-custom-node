@@ -6,7 +6,7 @@ import re
 class AutoLoraLoader_S2V:
     """
     Analyzes an image prompt using Gemini to extract character names.
-    It matches found names against a HARDCODED list of LoRA files.
+    It matches found names against a HARDCODED and also loras listed in the loras folder.
     If no character is found, it loads nothing.
     """
 
