@@ -44,7 +44,11 @@ class AutoLoraLoader_S2V:
                 name = re.sub(pattern, '', name, flags=re.IGNORECASE)
             name = re.sub(r'[_-]+', ' ', name).strip()
             if name and len(name) > 1:
-                auto_map[name.lower()] = filename
+                key = name.lower()
+                if key in auto_map:
+                    print(f"⚠️  Collision detected: '{filename}' and '{auto_map[key]}' both map to character name '{key}'. Ignoring '{filename}'.")
+                else:
+                    auto_map[key] = filename
         return auto_map
 
     def build_smart_lora_map(self):
