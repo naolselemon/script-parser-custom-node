@@ -127,7 +127,7 @@ class IterativeExecutor:
 
         # Safety check: Ensure video prompt list is aligned
         if not current_video_prompt:
-             print(f"⚠️ WARNING: Panel #{current_index+1} has an empty video prompt.")
+            print(f"⚠️ WARNING: Panel #{current_index+1} has an empty video prompt.")
 
         print(f"--> Serving prompts for Panel #{current_index + 1}/{total_panels}")
         

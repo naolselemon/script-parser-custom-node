@@ -130,7 +130,9 @@ class PromptGenerator:
                     merged_panels_list.extend(batch_panels)
                     print(f"✅ Batch {batch_num}: Successfully extracted {len(batch_panels)} panels.")
                 else:
-                    print(f"⚠️ Batch {batch_num}: 'panels' key is not a list. Skipping.")
+                    error_message = f"❌ FATAL ERROR on Batch {batch_num}: 'panels' key is not a list. Halting processing.\n--> Raw value: {repr(batch_panels)}"
+                    print(error_message)
+                    raise Exception(error_message)
 
             except json.JSONDecodeError as e:
                 print(f"❌ JSON PARSE ERROR on Batch {batch_num}: {e}")
