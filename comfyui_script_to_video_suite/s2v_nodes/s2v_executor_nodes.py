@@ -100,25 +100,34 @@ class IterativeExecutor:
     def execute(self, image_prompts: list, video_prompts: list, mode: str, index: int):
         print(f"Executing 'Iterative Executor' in '{mode}' mode...")
         
-        # 1. Validate Input Data
+        #  Validate Image prompts
         if not image_prompts or not isinstance(image_prompts, list):
             error_message = "FATAL ERROR: Executor received an empty or invalid 'image_prompts' list. Check the Unpacker node output."
             print(error_message)
             raise ValueError(error_message)
-        total_panels = len(image_prompts)
         
-        # 2. Calculate Index (Modulo math prevents crashing if index > total)
-        # e.g. If total is 10 and index is 12, we loop back to 2.
+        # Validate Video prompts
+        if not video_prompts or not isinstance(video_prompts, list):
+            error_msg = "FATAL ERROR: No 'video_prompts' found! The Unpacker returned an empty list."
+            print(error_msg)
+            raise ValueError(error_msg)
+        
+        #  Synchronization Check (Crucial)
+        if len(image_prompts) != len(video_prompts):
+            error_msg = f"FATAL ERROR: Mismatch in prompt counts!\nImage Prompts: {len(image_prompts)}\nVideo Prompts: {len(video_prompts)}\n(The LLM likely failed to generate a video prompt for every panel.)"
+            print(error_msg)
+            raise ValueError(error_msg)
+
+        total_panels = len(image_prompts)
         current_index = index % total_panels
         
-        # 3. Retrieve Prompts
+        #  Retrieve Prompts
         current_image_prompt = image_prompts[current_index]
-        
+        current_video_prompt = video_prompts[current_index]
+
         # Safety check: Ensure video prompt list is aligned
-        if video_prompts and current_index < len(video_prompts):
-            current_video_prompt = video_prompts[current_index]
-        else:
-            current_video_prompt = ""
+        if not current_video_prompt:
+             print(f"⚠️ WARNING: Panel #{current_index+1} has an empty video prompt.")
 
         print(f"--> Serving prompts for Panel #{current_index + 1}/{total_panels}")
         
