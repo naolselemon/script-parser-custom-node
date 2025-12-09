@@ -23,11 +23,12 @@ class PromptUnpacker:
     CATEGORY = "Script To Video Suite/Execution"
 
     def unpack_prompts(self, prompt_text: str):
-        print("Executing 'Prompt Unpacker' (JSON Mode)...")
+        print("Executing 'Prompt Unpacker' JSON Mode...")
         
         if not prompt_text or not prompt_text.strip():
-            print("⚠️ WARNING: Input prompt_text is empty.")
-            return ([], [], "")
+            error_message = "❌ FATAL ERROR: Input 'prompt_text' is empty! The Prompt Generator node returned nothing."
+            print(error_message)
+            raise ValueError(error_message)
 
         cleaned_text = prompt_text.replace("```json", "").replace("```", "").strip()
 
@@ -60,12 +61,14 @@ class PromptUnpacker:
             return (image_prompts, video_prompts, meta_summary)
 
         except json.JSONDecodeError as e:
-            print(f"❌ FATAL ERROR: Could not parse JSON.\nError: {e}")
-            print(f"Snippet of received text: {cleaned_text[:200]}...")
-            return ([], [], "JSON Parsing Error")
+            error_msg = f"❌ FATAL ERROR: The LLM output was not valid JSON.\nParse Error: {e}\n\nSnippet: {cleaned_text[:200]}..."
+            print(error_msg)
+            raise ValueError(error_msg)
+
         except Exception as e:
-            print(f"❌ UNEXPECTED ERROR: {e}")
-            return ([], [], "Unexpected Error")
+            error_msg = f"❌ UNEXPECTED ERROR during unpacking: {e}"
+            print(error_msg)
+            raise ValueError(error_msg)
 
 
 class IterativeExecutor:
@@ -99,9 +102,9 @@ class IterativeExecutor:
         
         # 1. Validate Input Data
         if not image_prompts or not isinstance(image_prompts, list):
-            print("⚠️ Executor Warning: Image prompt list is empty or invalid.")
-            return ("", "", 0, 0)
-
+            error_message = "FATAL ERROR: Executor received an empty or invalid 'image_prompts' list. Check the Unpacker node output."
+            print(error_message)
+            raise ValueError(error_message)
         total_panels = len(image_prompts)
         
         # 2. Calculate Index (Modulo math prevents crashing if index > total)

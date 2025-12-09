@@ -76,9 +76,10 @@ class PromptGenerator:
         else:
             print("Executing 'Prompt Generator' node in normal mode...")
         
-        if not storyboard_text or storyboard_text.strip() == "":
-            print("⚠️ WARNING: Storyboard text is empty. Aborting.")
-            return ("",)
+        if not storyboard_text or not storyboard_text.strip():
+            error_message = " FATAL ERROR: Input 'storyboard_text' is empty!"
+            print(error_message) 
+            raise ValueError(error_message)
 
         all_panels = self._split_storyboard_into_panels(storyboard_text)
         if not all_panels:
@@ -108,6 +109,7 @@ class PromptGenerator:
             if response_text.startswith("Error:"):
                 error_message = f"❌ FATAL ERROR on Batch {batch_num}: The relay failed.\n--> Reason: {response_text}"
                 print(error_message)
+                print("This is a debug message")
                 raise Exception(error_message)
 
             # --- JSON PARSING & MERGING LOGIC ---
