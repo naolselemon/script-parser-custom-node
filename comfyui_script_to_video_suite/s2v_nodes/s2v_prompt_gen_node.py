@@ -1,5 +1,6 @@
 import re
-import os 
+import os
+import json 
 from .gemini_relay_client import ask_gemini_via_relay
 
 def load_master_prompt_from_file(filename: str) -> str:
@@ -19,8 +20,8 @@ PROMPT_GENERATION_META_PROMPT = load_master_prompt_from_file("prompt_generation_
 class PromptGenerator:
     """
     A custom node that takes a full storyboard, breaks it into batches,
-    calls an LLM to process each batch, and then combines the final results.
-    Includes a debug mode to load storyboard data from a local file.
+    calls an LLM to process each batch, and COMBINES the JSON results 
+    into a single valid JSON output.
     """
     @classmethod
     def IS_CHANGED(cls, **kwargs):
@@ -28,10 +29,6 @@ class PromptGenerator:
 
     @classmethod
     def INPUT_TYPES(cls):
-        """
-        Defines the input widgets for the node.
-        - Adds optional 'debug_mode' and 'debug_filepath' for isolated testing.
-        """
         return {
             "required": {
                 "storyboard_text": ("STRING", {"multiline": True}),
@@ -62,7 +59,7 @@ class PromptGenerator:
 
     def generate_prompts_in_batches(self, storyboard_text: str, master_prompt: str, batch_size: int, debug_mode: bool = False, debug_filepath: str = ""):
         
-        # --- NEW: DEBUG MODE LOGIC ---
+        # --- DEBUG MODE LOGIC ---
         if debug_mode:
             print("💡 DEBUG MODE IS ON. Ignoring 'storyboard_text' input and loading from file.")
             try:
@@ -73,15 +70,14 @@ class PromptGenerator:
                     storyboard_text = f.read()
                 print(f"✅ Successfully loaded debug data from: {debug_filepath}")
             except Exception as e:
-                # Raise an exception to make the node turn red in ComfyUI and show the error.
                 error_message = f"❌ DEBUG ERROR: Failed to load file. Reason: {e}"
                 print(error_message)
-                raise e  # Stop execution
+                raise e 
         else:
             print("Executing 'Prompt Generator' node in normal mode...")
         
         if not storyboard_text or storyboard_text.strip() == "":
-            print("⚠️ WARNING: Storyboard text is empty (either from input or debug file). Aborting.")
+            print("⚠️ WARNING: Storyboard text is empty. Aborting.")
             return ("",)
 
         all_panels = self._split_storyboard_into_panels(storyboard_text)
@@ -89,7 +85,10 @@ class PromptGenerator:
             print("⚠️ WARNING: No valid panels found in storyboard text. Aborting.")
             return ("",)
 
-        final_responses = []
+        # --- PREPARE DATA STRUCTURES FOR MERGING ---
+        merged_meta_summary = ""
+        merged_panels_list = []
+        
         total_batches = (len(all_panels) + batch_size - 1) // batch_size
 
         for i in range(0, len(all_panels), batch_size):
@@ -105,14 +104,43 @@ class PromptGenerator:
             
             response_text = ask_gemini_via_relay(full_prompt)
             
+            # Basic error check
             if response_text.startswith("Error:"):
                 error_message = f"❌ FATAL ERROR on Batch {batch_num}: The relay failed.\n--> Reason: {response_text}"
                 print(error_message)
                 raise Exception(error_message)
-            
-            final_responses.append(response_text)
-            print(f"✅ Batch {batch_num} processed successfully.")
 
-        final_output = "\n\n--- BATCH SEPARATOR ---\n\n".join(final_responses)
-        print("✅ All batches for final prompt generation complete.")
-        return (final_output,)
+            # --- JSON PARSING & MERGING LOGIC ---
+            try:
+                # 1. Clean markdown code blocks if Gemini added them
+                cleaned_json_text = response_text.replace("```json", "").replace("```", "").strip()
+                
+                # 2. Parse the batch JSON
+                batch_data = json.loads(cleaned_json_text)
+                
+                # 3. Extract Summary (Only need it from the first batch)
+                if batch_num == 1:
+                    merged_meta_summary = batch_data.get("meta_summary", "No summary provided.")
+                
+                # 4. Extract Panels and append to master list
+                batch_panels = batch_data.get("panels", [])
+                if isinstance(batch_panels, list):
+                    merged_panels_list.extend(batch_panels)
+                    print(f"✅ Batch {batch_num}: Successfully extracted {len(batch_panels)} panels.")
+                else:
+                    print(f"⚠️ Batch {batch_num}: 'panels' key is not a list. Skipping.")
+
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON PARSE ERROR on Batch {batch_num}: {e}")
+                print(f"Raw response was: {response_text[:100]}...")
+                # We raise exception here because if one batch fails, the array alignment breaks
+                raise Exception(f"Batch {batch_num} returned invalid JSON. Check console for details.")
+
+        # --- FINAL ASSEMBLY ---
+        final_structure = {
+            "meta_summary": merged_meta_summary,
+            "panels": merged_panels_list
+        }
+        final_output_string = json.dumps(final_structure, indent=2)
+        print(f"✅ All batches complete. Total panels merged: {len(merged_panels_list)}")
+        return (final_output_string,)
