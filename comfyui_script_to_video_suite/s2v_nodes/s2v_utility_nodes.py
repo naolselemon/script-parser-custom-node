@@ -25,9 +25,10 @@ class StringSwitch_S2V:
             return (manual_input,)
         
         if generated_input is None:
-            print("⚠️ S2V Switch Warning: Workflow mode is ON, but nothing is connected to 'generated_input'. Returning empty string.")
-            return ("",)
-
+            error_message = "❌ FATAL ERROR: Switch is in Workflow Mode (use_manual=False), but nothing is connected to 'generated_input'!"
+            print(error_message)
+            raise ValueError(error_message)
+             
         print("🔄 S2V Switch: Using GENERATED input.")
         return (generated_input,)
 
