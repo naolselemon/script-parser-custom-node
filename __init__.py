@@ -1,9 +1,9 @@
 
-
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_chunker_node import PDFChunker
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_storyboard_node import StoryboardGenerator
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_prompt_gen_node import PromptGenerator
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_executor_nodes import PromptUnpacker, IterativeExecutor
+from .comfyui_script_to_video_suite.s2v_nodes.s2v_utility_nodes import StringSwitch_S2V
 
 NODE_CLASS_MAPPINGS = {
     "PDFChunker_S2V": PDFChunker,
@@ -11,6 +11,7 @@ NODE_CLASS_MAPPINGS = {
     "PromptGenerator_S2V": PromptGenerator,
     "PromptUnpacker_S2V": PromptUnpacker,
     "IterativeExecutor_S2V": IterativeExecutor,
+    "StringSwitch_S2V": StringSwitch_S2V,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -19,6 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PromptGenerator_S2V": "3. Prompt Generator (S2V)",
     "PromptUnpacker_S2V": "4. Prompt Unpacker (S2V)",
     "IterativeExecutor_S2V": "5. Iterative Executor (S2V)",
+    "StringSwitch_S2V": "Debug String Switch (S2V)",
 }
 
 # --- A confirmation message that your package was loaded ---
