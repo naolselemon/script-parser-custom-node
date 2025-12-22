@@ -23,7 +23,7 @@ class PromptUnpacker:
     CATEGORY = "Script To Video Suite/Execution"
 
     def unpack_prompts(self, prompt_text: str):
-        print("Executing 'Prompt Unpacker' JSON Mode...")
+        print("Executing 'Prompt Unpacker' (JSON Mode)...")
         
         if not prompt_text or not prompt_text.strip():
             error_message = "❌ FATAL ERROR: Input 'prompt_text' is empty! The Prompt Generator node returned nothing."
@@ -36,7 +36,6 @@ class PromptUnpacker:
             data = json.loads(cleaned_text)
             
             meta_summary = data.get("meta_summary", "No summary provided.")
-            
             panels = data.get("panels", [])
             
             if not isinstance(panels, list):
@@ -71,14 +70,21 @@ class PromptUnpacker:
             raise ValueError(error_msg)
 
 
-class IterativeExecutor:
+
+
+
+class SmartSequencer_S2V:
     """
-    Node #4b: The 'for loop'. Takes lists of prompts and serves them one by one,
-    based on the index provided.
+    Node #4b (Improved): Automatically iterates through the prompt lists.
+    - No external 'Primitive' node needed.
+    - Internal counter tracks progress.
+    - Automatically wraps around when it reaches the end.
     """
+    
+    _current_index = 0
+
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        # Always re-run to ensure we catch index changes
         return float("NaN")
 
     @classmethod
@@ -87,48 +93,37 @@ class IterativeExecutor:
             "required": {
                 "image_prompts": ("PROMPTS_LIST",),
                 "video_prompts": ("PROMPTS_LIST",),
-                "mode": (["manual", "iterative"],),
-                "index": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "reset_counter": ("BOOLEAN", {"default": False, "label_on": "Reset on next run", "label_off": "Continue counting"}),
             }
         }
 
     RETURN_TYPES = ("STRING", "STRING", "INT", "INT",)
     RETURN_NAMES = ("image_prompt", "video_prompt", "current_index", "total_panels",)
-    FUNCTION = "execute"
+    FUNCTION = "execute_sequence"
     CATEGORY = "Script To Video Suite/Execution"
 
-    def execute(self, image_prompts: list, video_prompts: list, mode: str, index: int):
-        print(f"Executing 'Iterative Executor' in '{mode}' mode...")
-        
-        #  Validate Image prompts
-        if not image_prompts or not isinstance(image_prompts, list):
-            error_message = "FATAL ERROR: Executor received an empty or invalid 'image_prompts' list. Check the Unpacker node output."
-            print(error_message)
-            raise ValueError(error_message)
-        
-        # Validate Video prompts
-        if not video_prompts or not isinstance(video_prompts, list):
-            error_msg = "FATAL ERROR: No 'video_prompts' found! The Unpacker returned an empty list."
-            print(error_msg)
-            raise ValueError(error_msg)
-        
-        #  Synchronization Check (Crucial)
-        if len(image_prompts) != len(video_prompts):
-            error_msg = f"FATAL ERROR: Mismatch in prompt counts!\nImage Prompts: {len(image_prompts)}\nVideo Prompts: {len(video_prompts)}\n(The LLM likely failed to generate a video prompt for every panel.)"
-            print(error_msg)
-            raise ValueError(error_msg)
-
+    def execute_sequence(self, image_prompts: list, video_prompts: list, reset_counter: bool):
         total_panels = len(image_prompts)
-        current_index = index % total_panels
         
-        #  Retrieve Prompts
-        current_image_prompt = image_prompts[current_index]
-        current_video_prompt = video_prompts[current_index]
-
-        # Safety check: Ensure video prompt list is aligned
-        if not current_video_prompt:
-            print(f"⚠️ WARNING: Panel #{current_index+1} has an empty video prompt.")
-
-        print(f"--> Serving prompts for Panel #{current_index + 1}/{total_panels}")
+        if not image_prompts:
+            print("❌ Smart Sequencer: Input list is empty.")
+            return ("", "", 0, 0)
         
-        return (current_image_prompt, current_video_prompt, current_index, total_panels)
+        if len(image_prompts) != len(video_prompts):
+            raise ValueError(f"❌ Mismatch: {len(image_prompts)} images vs {len(video_prompts)} videos.")
+
+        if reset_counter:
+            print("🔄 Smart Sequencer: Manual Reset Triggered.")
+            SmartSequencer_S2V._current_index = 0
+
+        idx = SmartSequencer_S2V._current_index % total_panels
+        
+        i_prompt = image_prompts[idx]
+        v_prompt = video_prompts[idx]
+
+        print(f"🎬 Smart Sequencer: Processing Panel #{idx + 1} of {total_panels}")
+
+        # 5. Increment for the *next* run
+        SmartSequencer_S2V._current_index += 1
+
+        return (i_prompt, v_prompt, idx, total_panels)
