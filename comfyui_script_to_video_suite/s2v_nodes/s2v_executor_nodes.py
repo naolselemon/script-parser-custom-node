@@ -123,7 +123,6 @@ class SmartSequencer_S2V:
 
         print(f"🎬 Smart Sequencer: Processing Panel #{idx + 1} of {total_panels}")
 
-        # 5. Increment for the *next* run
         SmartSequencer_S2V._current_index += 1
 
         return (i_prompt, v_prompt, idx, total_panels)
