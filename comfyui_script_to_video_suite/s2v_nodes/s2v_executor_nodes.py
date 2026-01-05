@@ -1,14 +1,8 @@
-# s2v_executor_nodes.py
-import re
-
-# Helper function to parse prompts from a section
-def _parse_prompts_from_section(section_text: str) -> list[str]:
-    matches = re.findall(r"PANEL\s+\d+:\s*(.*)", section_text, re.IGNORECASE)
-    return [match.strip() for match in matches]
+import json
 
 class PromptUnpacker:
     """
-    Node #4a: Parses the full text from the PromptGenerator into clean, 
+    Node #4a: Parses the JSON output from PromptGenerator into clean, 
     usable lists of prompts, ready for iteration.
     """
     @classmethod
@@ -17,7 +11,11 @@ class PromptUnpacker:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return { "required": { "prompt_text": ("STRING", {"multiline": True}), } }
+        return { 
+            "required": { 
+                "prompt_text": ("STRING", {"multiline": True, "forceInput": True}), 
+            } 
+        }
 
     RETURN_TYPES = ("PROMPTS_LIST", "PROMPTS_LIST", "STRING",)
     RETURN_NAMES = ("image_prompts", "video_prompts", "meta_summary",)
@@ -25,37 +23,62 @@ class PromptUnpacker:
     CATEGORY = "Script To Video Suite/Execution"
 
     def unpack_prompts(self, prompt_text: str):
-        print("Executing 'Prompt Unpacker' node...")
+        print("Executing 'Prompt Unpacker' JSON Mode...")
+        
         if not prompt_text or not prompt_text.strip():
-            print("⚠️ WARNING: Input prompt_text is empty.")
-            return ([], [], "")
+            error_message = "❌ FATAL ERROR: Input 'prompt_text' is empty! The Prompt Generator node returned nothing."
+            print(error_message)
+            raise ValueError(error_message)
 
-        sections = re.split(r'###\s*(META SCENE SUMMARY|IMAGE GENERATION PROMPTS|VIDEO GENERATION \(I2V\) PROMPTS)\s*', prompt_text, flags=re.IGNORECASE)
-        
-        meta_summary, image_prompts, video_prompts = "", [], []
+        cleaned_text = prompt_text.replace("```json", "").replace("```", "").strip()
 
-        for i in range(1, len(sections), 2):
-            header = sections[i].strip().upper()
-            content = sections[i+1].strip()
+        try:
+            data = json.loads(cleaned_text)
             
-            if "META SCENE SUMMARY" in header:
-                meta_summary = content
-            elif "IMAGE GENERATION PROMPTS" in header:
-                image_prompts = _parse_prompts_from_section(content)
-            elif "VIDEO GENERATION (I2V) PROMPTS" in header:
-                video_prompts = _parse_prompts_from_section(content)
-        
-        print(f"✅ Unpacked {len(image_prompts)} image prompts and {len(video_prompts)} video prompts.")
-        # We are returning native Python lists here.
-        return (image_prompts, video_prompts, meta_summary)
+            meta_summary = data.get("meta_summary", "No summary provided.")
+            
+            panels = data.get("panels", [])
+            
+            if not isinstance(panels, list):
+                print(f"❌ ERROR: 'panels' key is not a list. Got: {type(panels)}")
+                return ([], [], meta_summary)
+
+            image_prompts = []
+            video_prompts = []
+
+            for i, p in enumerate(panels):
+                i_p = p.get("image_prompt", "")
+                v_p = p.get("video_prompt", "")
+                
+                if i_p is None: i_p = ""
+                if v_p is None: v_p = ""
+                
+                image_prompts.append(i_p)
+                video_prompts.append(v_p)
+
+            print(f"✅ Unpacked {len(image_prompts)} image prompts and {len(video_prompts)} video prompts.")
+            
+            return (image_prompts, video_prompts, meta_summary)
+
+        except json.JSONDecodeError as e:
+            error_msg = f"❌ FATAL ERROR: The LLM output was not valid JSON.\nParse Error: {e}\n\nSnippet: {cleaned_text[:200]}..."
+            print(error_msg)
+            raise ValueError(error_msg)
+
+        except Exception as e:
+            error_msg = f"❌ UNEXPECTED ERROR during unpacking: {e}"
+            print(error_msg)
+            raise ValueError(error_msg)
+
 
 class IterativeExecutor:
     """
     Node #4b: The 'for loop'. Takes lists of prompts and serves them one by one,
-    either manually by index or iteratively in a loop.
+    based on the index provided.
     """
     @classmethod
     def IS_CHANGED(cls, **kwargs):
+        # Always re-run to ensure we catch index changes
         return float("NaN")
 
     @classmethod
@@ -76,21 +99,36 @@ class IterativeExecutor:
 
     def execute(self, image_prompts: list, video_prompts: list, mode: str, index: int):
         print(f"Executing 'Iterative Executor' in '{mode}' mode...")
+        
+        #  Validate Image prompts
+        if not image_prompts or not isinstance(image_prompts, list):
+            error_message = "FATAL ERROR: Executor received an empty or invalid 'image_prompts' list. Check the Unpacker node output."
+            print(error_message)
+            raise ValueError(error_message)
+        
+        # Validate Video prompts
+        if not video_prompts or not isinstance(video_prompts, list):
+            error_msg = "FATAL ERROR: No 'video_prompts' found! The Unpacker returned an empty list."
+            print(error_msg)
+            raise ValueError(error_msg)
+        
+        #  Synchronization Check (Crucial)
+        if len(image_prompts) != len(video_prompts):
+            error_msg = f"FATAL ERROR: Mismatch in prompt counts!\nImage Prompts: {len(image_prompts)}\nVideo Prompts: {len(video_prompts)}\n(The LLM likely failed to generate a video prompt for every panel.)"
+            print(error_msg)
+            raise ValueError(error_msg)
+
         total_panels = len(image_prompts)
+        current_index = index % total_panels
         
-        if total_panels == 0:
-            return ("", "", 0, 0)
-        
-        current_index = 0
-        if mode == 'manual':
-            # In manual mode, we respect the user's index, but prevent crashes.
-            current_index = index % total_panels
-        else: # iterative mode
-            # In iterative mode, the 'index' input acts as the loop counter.
-            current_index = index % total_panels
-        
+        #  Retrieve Prompts
         current_image_prompt = image_prompts[current_index]
-        current_video_prompt = video_prompts[current_index] if current_index < len(video_prompts) else ""
+        current_video_prompt = video_prompts[current_index]
+
+        # Safety check: Ensure video prompt list is aligned
+        if not current_video_prompt:
+            print(f"⚠️ WARNING: Panel #{current_index+1} has an empty video prompt.")
 
         print(f"--> Serving prompts for Panel #{current_index + 1}/{total_panels}")
+        
         return (current_image_prompt, current_video_prompt, current_index, total_panels)
