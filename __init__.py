@@ -13,7 +13,6 @@ NODE_CLASS_MAPPINGS = {
     "StoryboardGenerator_S2V": StoryboardGenerator,
     "PromptGenerator_S2V": PromptGenerator,
     "PromptUnpacker_S2V": PromptUnpacker,
-    # "IterativeExecutor_S2V": IterativeExecutor,
     "StringSwitch_S2V": StringSwitch_S2V,
     "AutoLoraLoader_S2V": AutoLoraLoader_S2V,
     "RagConsistencyNode_S2V": RagConsistencyNode_S2V,
