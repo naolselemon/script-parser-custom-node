@@ -14,7 +14,7 @@ Your task is to process this entire storyboard and return a SINGLE JSON OBJECT c
    - It MUST be a comma-separated list of keywords.
    - Begin with quality tags: "masterpiece, best quality, anime style, cinematic still".
    - Translate the SHOT_TYPE and ACTION_DESCRIPTION into vivid visual keywords.
-   - If a character is named (e.g., Isaac, Gertie), you MUST include their LoRA trigger word in the format: "<lora:charactername_v1:0.8>".
+   - If a character is named (e.g., Isaac, Gertie) you must include the name at the end of the prompt generated.
 
 3. **Video Generation Prompts (Image-to-Video):**
    - For EACH panel, create a short, descriptive sentence for movement.
@@ -34,7 +34,7 @@ The JSON structure must be exactly as follows:
   "panels": [
     {
       "panel_number": 1,
-      "image_prompt": "masterpiece, best quality, anime style, <lora:isaac_v1:0.8>, Isaac standing in the rain, neon lights, cybernetic arm...",
+      "image_prompt": "masterpiece, best quality, anime style, Isaac standing in the rain, neon lights, cybernetic arm...",
       "video_prompt": "Rain falling diagonally, neon lights flickering, camera slow zoom in."
     },
     {

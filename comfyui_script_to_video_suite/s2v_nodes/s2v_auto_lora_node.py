@@ -1,17 +1,13 @@
 import json
 import folder_paths
-from .gemini_relay_client import ask_gemini_via_relay
 import os
 import re
+from .gemini_relay_client import ask_gemini_via_relay
+
 class AutoLoraLoader_S2V:
-    """
-    Analyzes an image prompt using Gemini to extract character names.
-    It matches found names against a HARDCODED and also loras listed in the loras folder.
-    If no character is found, it loads nothing.
-    """
+    
 
-    _cached_map = None  # cache for performance
-
+    _cached_map = None  
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -29,96 +25,96 @@ class AutoLoraLoader_S2V:
     @staticmethod
     def create_map_from_lora_folder():
         """
-        Build a map of character_name -> filename from all LoRA files on disk.
-        Cleans filenames by removing version numbers, 'lora' prefixes/suffixes, and other noise.
-        Supports nested folders.
+        Builds a map of 'clean_name' -> 'relative/path/filename.safetensors'.
+        Uses ComfyUI's internal scanner to handle subfolders automatically.
         """
+        print("AutoLoRA: Scanning LoRA folder for dynamic mapping...")
         auto_map = {}
-        lora_root = folder_paths.get_folder_path("loras")
+        
+        # Get list of all LoRAs (includes subfolders like 'characters/isaac.safetensors')
+        available_loras = folder_paths.get_filename_list("loras")
+        print(available_loras)
+        for relative_path in available_loras:
+            
+            filename_only = os.path.basename(relative_path)
+            name_no_ext = os.path.splitext(filename_only)[0]
+            
+          
+            patterns_to_remove = [
+                r'\blora\b', r'\bloras\b', r'^lora_', r'^loras_', r'_lora\b', r'_loras\b',
+                r'v\d+\b', r'_v\d+\b', r'version\d+\b', r'_version\d+\b',
+                r'rev\d+\b', r'_rev\d+\b', r'final\b', r'last\b', r'end\b',
+                r'put_loras_here'
+            ]
+            
+            clean_name = name_no_ext
+            for pattern in patterns_to_remove:
+                clean_name = re.sub(pattern, '', clean_name, flags=re.IGNORECASE)
+            
+            
+            clean_name = re.sub(r'[_-]+', ' ', clean_name).strip().lower()
 
-        for root, _, files in os.walk(lora_root):
-            for filename in files:
-                if not filename.lower().endswith((".safetensors", ".pt")):
-                    continue
-                name = os.path.splitext(filename)[0]
-                patterns_to_remove = [
-                    r'\blora\b', r'\bloras\b', r'^lora_', r'^loras_', r'_lora\b', r'_loras\b',
-                    r'v\d+\b', r'_v\d+\b', r'version\d+\b', r'_version\d+\b',
-                    r'rev\d+\b', r'_rev\d+\b', r'final\b', r'last\b', r'end\b',
-                    r'put_loras_here'
-                ]
-                for pattern in patterns_to_remove:
-                    name = re.sub(pattern, '', name, flags=re.IGNORECASE)
-                name = re.sub(r'[_-]+', ' ', name).strip()
-                if name and len(name) > 1:
-                    key = name.lower()
-                    if key in auto_map:
-                        print(f"⚠️ Collision detected: '{filename}' and '{auto_map[key]}' both map to '{key}'. Ignoring '{filename}'.")
-                    else:
-                        auto_map[key] = filename
+            
+            if clean_name and len(clean_name) > 1:
+                if clean_name not in auto_map:
+                    auto_map[clean_name] = relative_path
+                
+                raw_key = name_no_ext.lower()
+                if raw_key not in auto_map:
+                    auto_map[raw_key] = relative_path
+
         return auto_map
 
     def build_smart_lora_map(self):
         """
-        Build the final LoRA mapping (SMART_MAP) with deduplication:
-        1. Hardcoded mappings take priority.
-        2. Auto-mapped characters are added only if their filename isn't already used.
-        3. Prevents duplicate filenames even if multiple characters would map to the same file.
+        Builds the final map. Hardcoded entries take priority over Auto-scanned ones.
         """
         if self._cached_map is not None:
             return self._cached_map
 
         AUTO_MAP = self.create_map_from_lora_folder()
-        # --- CONFIGURATION: HARDCODED LORA MAPPING ---
-        # Format: "Character Name (lowercase)": "Actual Filename.safetensors"
+        
         HARDCODED_MAP = {
             "isaac": "isaac_15.safetensors",
-            # Add more here later, e.g., "neo": "neo_v1.safetensors"
+            # "gertie": "characters/gertie_v1.safetensors"
         }
 
-        SMART_MAP = {}
-        used_files = set(filename.lower() for filename in HARDCODED_MAP.values())
-        
-        # Add hardcoded entries
-        for char_name, filename in HARDCODED_MAP.items():
-            SMART_MAP[char_name] = filename
-            print(f"🛡️  Using hardcoded '{char_name}' -> '{filename}'")
+        SMART_MAP = AUTO_MAP.copy()
+        for char, filename in HARDCODED_MAP.items():
+            SMART_MAP[char] = filename
+            print(f"AutoLoRA: Enforcing hardcoded map '{char}' -> '{filename}'")
 
-        for char_name, filename in AUTO_MAP.items():
-            if filename.lower() not in used_files:
-                SMART_MAP[char_name] = filename
-                used_files.add(filename.lower())
-                print(f"🔍 Auto-mapped '{char_name}' -> '{filename}'")
-
-        print(f"✅ SmartMap: Final mapping has {len(SMART_MAP)} entries")
         self._cached_map = SMART_MAP
+        print(f"✅ AutoLoRA: SmartMap ready with {len(SMART_MAP)} entries.")
         return SMART_MAP
 
     def process_auto_loras(self, image_prompt, lora_strength):
         LORA_MAP = self.build_smart_lora_map()
 
+        # System prompt for the Relay (Gemini)
         system_instruction = (
             "You are an entity extraction assistant. "
             "Identify the main character names in the text below. "
             "Return ONLY a valid JSON list of strings. "
-            "Example output: [\"Isaac\", \"Neo\"].  "
+            "Example output: [\"Isaac\", \"Neo\"]. "
             "If no specific characters are found, return []. "
-            "Do not add markdown formatting, explanations, or code blocks. "
-            "Ignore generic terms like 'man', 'woman', 'person', 'character'. "
-            "If multiple mentions of same character, include only once. "
-            "Do NOT hallucinate names not present. "
-            "Do NOT include descriptions, attributes, or roles."
+            "Ignore generic terms like 'man', 'woman', 'soldier', 'robot'. "
+            "Only return Proper Nouns."
         )
 
         full_query = f"{system_instruction}\n\nText to analyze: {image_prompt}"
         print(f"🕵️ AutoLoRA: Analyzing prompt: {image_prompt[:50]}...")
 
+        character_names = []
         try:
+            # Call Gemini
             response_text = ask_gemini_via_relay(full_query)
+            
             if response_text.startswith("Error:"):
                 print(f"❌ AutoLoRA: Relay Error - {response_text}")
                 return ([],)
 
+            # Parse JSON
             cleaned_json = response_text.replace("```json", "").replace("```", "").strip()
             character_names = json.loads(cleaned_json)
 
@@ -127,28 +123,32 @@ class AutoLoraLoader_S2V:
                 return ([],)
 
         except Exception as e:
-            print(f"⚠️ AutoLoRA: Could not extract characters ({e}). Loading 0 LoRAs.")
+            print(f"⚠️ AutoLoRA: Extraction failed ({e}). Loading 0 LoRAs.")
             return ([],)
 
         if not character_names:
-            print("ℹ️ AutoLoRA: No characters found in prompt. No LoRAs will be loaded.")
+            print("ℹ️ AutoLoRA: No characters found in text.")
             return ([],)
 
-        print(f"🤖 AutoLoRA: Gemini found: {character_names}")
+        print(f"🤖 AutoLoRA: Gemini found entities: {character_names}")
 
+        # Verify files exist before adding to stack
         files_on_disk = folder_paths.get_filename_list("loras")
         lora_stack = []
 
         for char_name in character_names:
             clean_name = char_name.lower().strip()
+            
             if clean_name in LORA_MAP:
                 target_filename = LORA_MAP[clean_name]
+                
                 if target_filename in files_on_disk:
                     print(f"✅ AutoLoRA: Mapping '{char_name}' -> '{target_filename}'")
+                    # Stack Format: (filename, model_strength, clip_strength)
                     lora_stack.append((target_filename, lora_strength, lora_strength))
                 else:
-                    print(f"❌ AutoLoRA: Character '{char_name}' maps to '{target_filename}', but that file is missing from the models/loras folder!")
+                    print(f"❌ AutoLoRA: Mapped '{char_name}' to '{target_filename}', but file is missing from disk!")
             else:
-                print(f"ℹ️ AutoLoRA: Character '{char_name}' found, but not in LORA_MAP. Ignoring.")
-
+                print(f"ℹ️ AutoLoRA: Character '{char_name}' found in text, but no matching LoRA file in map.")
+        print(lora_stack)
         return (lora_stack,)
