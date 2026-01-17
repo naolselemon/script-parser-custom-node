@@ -1,8 +1,10 @@
 import json
 import os
+import folder_paths
 from .gemini_relay_client import ask_gemini_via_relay
 
-
+# change this to correct lora name in our system
+DRAGON_BALL_LORA_FILENAME = "dragon_ball.safetensors"
 
 def load_prompt_from_file(filename: str) -> str:
     """
@@ -82,3 +84,53 @@ class FightingSceneDetector_S2V:
         except Exception as e:
             print(f"⚠️ Detection failed: {str(e)}")
             return False
+        
+
+
+class DragonBallLoRAConditional_S2V:
+    """
+    Loads Dragon Ball LoRA only when the condition is True.
+    Returns empty stack when condition is False.
+    """
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required" : {
+                "condition": ("BOOLEAN", { "default" : False})
+            },
+
+            "optional": {
+                "custom_lora_name" : ("STRING", {"default" : " ", "placeholder"  : "leave empty to use default"})
+            }
+        }
+    
+    RETURN_TYPES = ("LORA_STACK", )
+    RETURN_NAMES = ("lora_stack", )
+    FUNCTION = "load_dragon_ball_lora"
+    CATEGORY = "Script To Video Suite/FightDetection"
+
+    def load_dragon_ball_lora(self, condition: bool, custom_lora_name: str):
+
+        lora_stack = []
+
+        if not condition:
+            print("Condition is False -> not loading Dragon Ball LoRA.")
+            return (lora_stack, )
+        
+        filename =  custom_lora_name.strip() or DRAGON_BALL_LORA_FILENAME
+
+        available_loras = folder_paths.get_filename_list("loras")
+
+        if filename not in available_loras:
+            print(f"❌ ERROR: Specified LoRA file '{filename}' not found in LoRA folder. Available LoRAs: {available_loras}")
+            return (lora_stack, )
+        
+        print(f"✅ Loading Dragon Ball LoRA: {filename}")
+        lora_stack.append((filename))
+
+        return (lora_stack, )
