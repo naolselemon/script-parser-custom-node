@@ -34,7 +34,7 @@ SYSYTEM_PROMPT = load_prompt_from_file("fighting_scene_classifier_prompt.txt")
 class FightingSceneDetector_S2V:
     """
     Analyzes video prompts using LLM(Gemini) to detect fighting/action scenes.
-    Returns BOOLEAN (is_fighting) and optional debug string.
+    Returns BOOLEAN (is_fighting) 
     """
 
     @classmethod
