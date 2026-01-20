@@ -101,36 +101,26 @@ class DragonBallLoRAConditional_S2V:
     def INPUT_TYPES(cls):
         return {
             "required" : {
-                "condition": ("BOOLEAN", { "default" : False})
+                "condition": ("BOOLEAN", { "default" : False}),
+                "lora_name" : (folder_paths.get_filename_list("loras"),),
             },
 
-            "optional": {
-                "custom_lora_name" : ("STRING", {"default" : " ", "placeholder"  : "leave empty to use default"})
-            }
         }
     
     RETURN_TYPES = ("LORA_STACK", )
     RETURN_NAMES = ("lora_stack", )
-    FUNCTION = "load_dragon_ball_lora"
+    FUNCTION = "find_lora_file"
     CATEGORY = "Script To Video Suite/FightDetection"
 
-    def load_dragon_ball_lora(self, condition: bool, custom_lora_name: str):
+    def find_lora_file(self, condition: bool, lora_name: str):
 
         lora_stack = []
 
         if not condition:
             print("Condition is False -> not loading Dragon Ball LoRA.")
             return (lora_stack, )
-        
-        filename =  custom_lora_name.strip() or DRAGON_BALL_LORA_FILENAME
-
-        available_loras = folder_paths.get_filename_list("loras")
-
-        if filename not in available_loras:
-            print(f"❌ ERROR: Specified LoRA file '{filename}' not found in LoRA folder. Available LoRAs: {available_loras}")
-            return (lora_stack, )
-        
-        print(f"✅ Loading Dragon Ball LoRA: {filename}")
-        lora_stack.append((filename))
+     
+        print(f"✅ Dragon Ball LoRA Found: {lora_name}")
+        lora_stack.append((lora_name))
 
         return (lora_stack, )
