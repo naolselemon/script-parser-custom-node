@@ -3,8 +3,7 @@ import os
 import folder_paths
 from .gemini_relay_client import ask_gemini_via_relay
 
-# change this to correct lora name in our system
-DRAGON_BALL_LORA_FILENAME = "dragon_ball.safetensors"
+
 
 def load_prompt_from_file(filename: str) -> str:
     """
@@ -24,11 +23,11 @@ def load_prompt_from_file(filename: str) -> str:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        return f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
+        raise f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
     except Exception as e:
-        return f"ERROR: Could not read prompt file. Reason: {e}"
+        raise f"ERROR: Could not read prompt file. Reason: {e}"
 
-SYSYTEM_PROMPT = load_prompt_from_file("fighting_scene_classifier_prompt.txt")
+SYSTEM_PROMPT = load_prompt_from_file("fighting_scene_classifier_prompt.txt")
 
 
 class FightingSceneDetector_S2V:
@@ -51,8 +50,8 @@ class FightingSceneDetector_S2V:
         }
     
 
-    RETURN_TYPES = ("BOOLEAN")
-    RETURN_NAMES = ("is_fighting")
+    RETURN_TYPES = ("BOOLEAN",)
+    RETURN_NAMES = ("is_fighting", )
     FUNCTION = "detect_fighting_scene"
     CATEGORY = "Script To Video Suite/FightDetection"
 
@@ -61,9 +60,9 @@ class FightingSceneDetector_S2V:
         if not video_prompt or not video_prompt.strip():
             msg = "Empty prompt -> no fighting"
             print(f"⚠️ WARNING: {msg}")
-            return False
+            return (False, )
         
-        full_query = f" {SYSYTEM_PROMPT}\n\n Scene: {video_prompt.strip()}"
+        full_query = f"{SYSTEM_PROMPT}\n\n{video_prompt.strip()}"
 
         print(f"ANALYZING: {video_prompt[:50]}...")
 
@@ -79,11 +78,11 @@ class FightingSceneDetector_S2V:
             cleaned = response.replace("```json", "").replace("```", "").strip()
             data = json.loads(cleaned)
 
-            return bool(data.get("is_fighting", False))
+            return (bool(data.get("is_fighting", False)),)
 
         except Exception as e:
             print(f"⚠️ Detection failed: {str(e)}")
-            return False
+            return (False, )
         
 
 
@@ -109,10 +108,10 @@ class DragonBallLoRAConditional_S2V:
     
     RETURN_TYPES = ("LORA_STACK", )
     RETURN_NAMES = ("lora_stack", )
-    FUNCTION = "find_lora_file"
+    FUNCTION = "load_lora_conditional"
     CATEGORY = "Script To Video Suite/FightDetection"
 
-    def find_lora_file(self, condition: bool, lora_name: str):
+    def load_lora_conditional(self, condition: bool, lora_name: str):
 
         lora_stack = []
 

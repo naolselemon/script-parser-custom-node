@@ -38,7 +38,7 @@ OUTPUT FORMAT:
 Return ONLY valid JSON. No explanations, no markdown, no extra text.
 
 {
-  "is_fighting": true // or false
+  "is_fighting": true
 }
 
 EXAMPLES:
