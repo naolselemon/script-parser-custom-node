@@ -11,8 +11,8 @@ class MultiLoraLoader_S2V:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("*",), 
-                "clip": ("*",), 
+                "model": ("WANVIDEOMODEL",), 
+                "clip": ("WANVIDEOTEXTEMBEDS",), 
                 "lora_stack": ("LORA_STACK",), 
             }
         }
@@ -28,20 +28,11 @@ class MultiLoraLoader_S2V:
 
         print(f"🔥 MultiLora: Processing stack with {len(lora_stack)} items...")
 
-        work_model = model
-        is_wrapper = False
-        
-        if hasattr(model, "model"):
-            print("⚙️ MultiLora: Detected Wrapper. Patching internal model...")
-            work_model = model.model
-            is_wrapper = True
-        
-        current_model = work_model
+        current_model = model
         current_clip = clip
 
         for lora_name, strength_model, strength_clip in lora_stack:
             resolved_path = None
-            
             resolved_path = folder_paths.get_full_path("loras", lora_name)
             
             if resolved_path is None and os.path.exists(lora_name):
@@ -56,16 +47,21 @@ class MultiLoraLoader_S2V:
             try:
                 lora_sd = comfy.utils.load_torch_file(resolved_path)
                 
-                current_model, current_clip = comfy.sd.load_lora_for_models(
-                    current_model, current_clip, lora_sd, strength_model, strength_clip
-                )
+                # --- NEW LOGIC: Try/Except/Fallback ---
+                try:
+                    # Attempt 1: Patch Model AND Clip (Standard behavior)
+                    current_model, current_clip = comfy.sd.load_lora_for_models(
+                        current_model, current_clip, lora_sd, strength_model, strength_clip
+                    )
+                except AttributeError:
+                    # Attempt 2: If CLIP is incompatible (e.g. WanVideo Embeddings Dict), 
+                    # we ignore CLIP and ONLY patch the Model.
+                    print(f"⚠️ Warning: CLIP/T5 is incompatible with standard patching. Applying LoRA to MODEL only.")
+                    current_model, _ = comfy.sd.load_lora_for_models(
+                        current_model, None, lora_sd, strength_model, 0
+                    )
             except Exception as e:
                 print(f"❌ Error merging LoRA {lora_name}: {e}")
                 continue
 
-        if is_wrapper:
-            # Update wrapper reference
-            model.model = current_model
-            return (model, current_clip)
-        else:
-            return (current_model, current_clip)
+        return (current_model, current_clip)
