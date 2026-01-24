@@ -32,94 +32,74 @@ SYSTEM_PROMPT = load_prompt_from_file("fighting_scene_classifier_prompt.txt")
 
 class FightingSceneDetector_S2V:
     """
-    Analyzes video prompts using LLM(Gemini) to detect fighting/action scenes.
-    Returns BOOLEAN (is_fighting) 
+    Detects if a given text input describes a fighting scene. 
+    Uses Gemini via a relay server to classify the scene.
     """
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
-    
-
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required" : {
-                "video_prompt" : ("STRING", {"multiline" : True}),
+            "required": {
+                "input": ("STRING", {"forceInput": True}),
             }
         }
-    
 
     RETURN_TYPES = ("BOOLEAN",)
-    RETURN_NAMES = ("is_fighting", )
+    RETURN_NAMES = ("condition",)
     FUNCTION = "detect_fighting_scene"
     CATEGORY = "Script To Video Suite/FightDetection"
 
-    def detect_fighting_scene(self, video_prompt: str):
-        
-        if not video_prompt or not video_prompt.strip():
-            msg = "Empty prompt -> no fighting"
-            print(f"⚠️ WARNING: {msg}")
-            return (False, )
-        
-        full_query = f"{SYSTEM_PROMPT}\n\n{video_prompt.strip()}"
+    def detect_fighting_scene(self, input: str):
 
-        print(f"ANALYZING: {video_prompt[:50]}...")
+        if not input or not input.strip():
+            print("⚠️ Empty prompt → no fighting")
+            return (False,)
+
+        full_query = f"{SYSTEM_PROMPT}\n\n{input.strip()}"
+
+        print(f"ANALYZING: {input[:50]}...")
 
         try:
-            response = ask_gemini_via_relay(
-                full_query,
-            )
+            response = ask_gemini_via_relay(full_query)
 
             if response.startswith("Error:"):
-                print(f"❌ ERROR from Gemini Relay: {response}")
-                return False
-            
+                print(f"❌ Gemini error: {response}")
+                return (False,)
+
             cleaned = response.replace("```json", "").replace("```", "").strip()
             data = json.loads(cleaned)
 
             return (bool(data.get("is_fighting", False)),)
 
         except Exception as e:
-            print(f"⚠️ Detection failed: {str(e)}")
-            return (False, )
+            print(f"⚠️ Detection failed: {e}")
+            return (False,)
+
         
 
 
 class DragonBallLoRAConditional_S2V:
     """
-    Loads Dragon Ball LoRA only when the condition is True.
-    Returns empty stack when condition is False.
+    Loads a specified LoRA if the condition is True.
     """
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")
-    
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required" : {
-                "condition": ("BOOLEAN", { "default" : False}),
-                "lora_name" : (folder_paths.get_filename_list("loras"),),
-            },
-
+            "required": {
+                "condition": ("BOOLEAN", {"forceInput": True}),
+                "lora_name": (folder_paths.get_filename_list("loras"),),
+            }
         }
-    
-    RETURN_TYPES = ("LORA_STACK", )
-    RETURN_NAMES = ("lora_stack", )
+
+    RETURN_TYPES = ("LORA",)
+    RETURN_NAMES = ("lora",)
     FUNCTION = "load_lora_conditional"
     CATEGORY = "Script To Video Suite/FightDetection"
 
     def load_lora_conditional(self, condition: bool, lora_name: str):
 
-        lora_stack = []
-
         if not condition:
-            print("Condition is False -> not loading Dragon Ball LoRA.")
-            return (lora_stack, )
-     
-        print(f"✅ Dragon Ball LoRA Found: {lora_name}")
-        lora_stack.append((lora_name))
+            print("Condition is False → no LoRA loaded")
+            return (None,)
 
-        return (lora_stack, )
+        print(f"✅ Loading LoRA: {lora_name}")
+        return (lora_name,)
