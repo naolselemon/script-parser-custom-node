@@ -1,6 +1,8 @@
 import json
 import os
 import folder_paths
+import comfy.utils
+import comfy.sd
 from .gemini_relay_client import ask_gemini_via_relay
 
 
@@ -65,7 +67,7 @@ class FightingSceneDetector_S2V:
                 print(f"❌ Gemini error: {response}")
                 return (False,)
 
-            cleaned = response.replace("```json", "").replace("```", "").strip()
+            cleaned = response.replace("```json", "").replace("", "").strip()
             data = json.loads(cleaned)
 
             return (bool(data.get("is_fighting", False)),)
@@ -75,11 +77,11 @@ class FightingSceneDetector_S2V:
             return (False,)
 
         
-
-
 class DragonBallLoRAConditional_S2V:
     """
-    Loads a specified LoRA if the condition is True.
+    Conditionally prepares a LoRA configuration compatible with WanVideo Model Loader
+    and related nodes (outputs type compatible with 'lora' input, typically WANVIDLORA).
+    Returns None when condition is false (passthrough / no LoRA applied).
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -87,19 +89,40 @@ class DragonBallLoRAConditional_S2V:
             "required": {
                 "condition": ("BOOLEAN", {"forceInput": True}),
                 "lora_name": (folder_paths.get_filename_list("loras"),),
-            }
+                "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+                "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+            },
         }
 
-    RETURN_TYPES = ("LORA",)
+    RETURN_TYPES = ("WANVIDLORA",)             # Matches WanVideoWrapper's expected type
     RETURN_NAMES = ("lora",)
-    FUNCTION = "load_lora_conditional"
+    FUNCTION = "prepare_conditional_lora"
     CATEGORY = "Script To Video Suite/FightDetection"
 
-    def load_lora_conditional(self, condition: bool, lora_name: str):
+    def prepare_conditional_lora(self, condition: bool, lora_name: str,
+                                 strength_model: float, strength_clip: float,
+                                 prev_lora=None):
 
         if not condition:
-            print("Condition is False → no LoRA loaded")
+            print("❌ Condition False: No LoRA configuration provided.")
+            # Return None or empty structure so downstream sees no LoRA
             return (None,)
 
-        print(f"✅ Loading LoRA: {lora_name}")
-        return (lora_name,)
+        print(f"✅ Condition True: Preparing LoRA config for '{lora_name}' "
+              f"(strength_model={strength_model}, strength_clip={strength_clip})")
+
+
+        lora_path = folder_paths.get_full_path("loras", lora_name)
+        if lora_path is None:
+            print(f"⚠️ LoRA file '{lora_name}' not found. No config returned.")
+            return (None,)
+
+        lora_config = {
+            "lora_name": lora_name,
+            "strength_model": strength_model,
+            "strength_clip": strength_clip,
+            "path": lora_path,               
+        }
+
+
+        return (lora_config,)
