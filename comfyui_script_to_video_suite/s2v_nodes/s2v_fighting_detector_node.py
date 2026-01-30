@@ -79,9 +79,8 @@ class FightingSceneDetector_S2V:
         
 class DragonBallLoRAConditional_S2V:
     """
-    Conditionally prepares a LoRA configuration compatible with WanVideo Model Loader
-    and related nodes (outputs type compatible with 'lora' input, typically WANVIDLORA).
-    Returns None when condition is false (passthrough / no LoRA applied).
+    Conditionally prepares a LoRA configuration for WanVideoModelLoader.
+    Returns a LIST of dictionaries compatible with WanVideoWrapper.
     """
     @classmethod
     def INPUT_TYPES(cls):
@@ -89,8 +88,7 @@ class DragonBallLoRAConditional_S2V:
             "required": {
                 "condition": ("BOOLEAN", {"forceInput": True}),
                 "lora_name": (folder_paths.get_filename_list("loras"),),
-                "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
-                "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+                "strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
             },
         }
 
@@ -99,18 +97,16 @@ class DragonBallLoRAConditional_S2V:
     FUNCTION = "prepare_conditional_lora"
     CATEGORY = "Script To Video Suite/FightDetection"
 
-    def prepare_conditional_lora(self, condition: bool, lora_name: str,
-                                 strength_model: float, strength_clip: float,
-                                 prev_lora=None):
+    def prepare_conditional_lora(self, condition: bool, lora_name: str, strength: float
+                                 ):
 
         if not condition:
             print("❌ Condition False: No LoRA configuration provided.")
             # Return None or empty structure so downstream sees no LoRA
             return (None,)
 
-        print(f"✅ Condition True: Preparing LoRA config for '{lora_name}' "
-              f"(strength_model={strength_model}, strength_clip={strength_clip})")
-
+        print(f"✅ Condition True: Preparing LoRA config for '{lora_name}' ")
+              
 
         lora_path = folder_paths.get_full_path("loras", lora_name)
         if lora_path is None:
@@ -118,11 +114,15 @@ class DragonBallLoRAConditional_S2V:
             return (None,)
 
         lora_config = {
-            "lora_name": lora_name,
-            "strength_model": strength_model,
-            "strength_clip": strength_clip,
-            "path": lora_path,               
+            "path": lora_path,
+            "strength": strength, 
+            "name": os.path.splitext(lora_name)[0],
+            "merge_loras": True,         
+            "low_mem_load": False,
+            "blocks": {},               
+            "layer_filter": ""          
         }
+        
+        loras_list = [lora_config]
 
-
-        return (lora_config,)
+        return (loras_list,)
