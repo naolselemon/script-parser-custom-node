@@ -1,0 +1,26 @@
+[
+  {
+    "query": "Isaac looked at his cybernetic arm with disdain.",
+    "entities_found": 1,
+    "similarity_score": 0.2918621599674225,
+    "retrieved_count": 1
+  },
+  {
+    "query": "Gertie adjusted her green headband nervously.",
+    "entities_found": 1,
+    "similarity_score": 0.36631572246551514,
+    "retrieved_count": 1
+  },
+  {
+    "query": "The electrical power facility hummed with dark energy.",
+    "entities_found": 0,
+    "similarity_score": 0.0,
+    "retrieved_count": 0
+  },
+  {
+    "query": "A random cat walked across the fence.",
+    "entities_found": 0,
+    "similarity_score": 0.0,
+    "retrieved_count": 0
+  }
+]

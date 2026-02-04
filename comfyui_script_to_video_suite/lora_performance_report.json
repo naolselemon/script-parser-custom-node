@@ -1,0 +1,10 @@
+{
+  "lora_name": "isaac_15.safetensors",
+  "path_resolution_ms": 0.5946159362792969,
+  "load_time_ms": 682.3532581329346,
+  "file_size_mb": 292.59,
+  "parameter_count": 153354240,
+  "signal_strength": 0.004026040640828796,
+  "tensor_device": "cpu",
+  "status": "SUCCESS"
+}
