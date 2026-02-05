@@ -41,12 +41,28 @@ class PDFChunker:
     CATEGORY = "Script To Video Suite"
 
     def _extract_text_from_pdf(self, pdf_path: str) -> str:
-        """Helper function to extract text content from a PDF file."""
+        """Helper function to extract text content from a PDF file, preserving bold formatting."""
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found at '{pdf_path}'")
         try:
+            full_text = ""
             with fitz.open(pdf_path) as doc:
-                full_text = "".join(page.get_text() for page in doc)
+                 for page in doc:
+                    blocks = page.get_text("dict")["blocks"]
+                    for block in blocks:
+                        if "lines" in block:  
+                            for line in block["lines"]:
+                                for span in line["spans"]:
+                                    text = span["text"]
+                                    flags = span["flags"]
+                                    is_bold = flags & 16 
+                                    
+                                    if is_bold:
+                                        full_text += f"**{text}**"
+                                    else:
+                                        full_text += text
+                                full_text += "\n"
+                            full_text += "\n" 
             return full_text
         except Exception as e:
             raise IOError(f"Could not read PDF. Reason: {e}")
