@@ -6,6 +6,7 @@ that would otherwise exceed the context limits of language models. each chunk wi
 """
 import os
 import fitz  # PyMuPDF
+from docling.document_converter import DocumentConverter
 
 class PDFChunker:
     """
@@ -41,31 +42,24 @@ class PDFChunker:
     CATEGORY = "Script To Video Suite"
 
     def _extract_text_from_pdf(self, pdf_path: str) -> str:
-        """Helper function to extract text content from a PDF file, preserving bold formatting."""
+        """Uses Docling to extract structured Markdown text."""
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found at '{pdf_path}'")
+        
         try:
-            full_text = ""
-            with fitz.open(pdf_path) as doc:
-                 for page in doc:
-                    blocks = page.get_text("dict")["blocks"]
-                    for block in blocks:
-                        if "lines" in block:  
-                            for line in block["lines"]:
-                                for span in line["spans"]:
-                                    text = span["text"]
-                                    flags = span["flags"]
-                                    is_bold = flags & 16 
-                                    
-                                    if is_bold:
-                                        full_text += f"**{text}**"
-                                    else:
-                                        full_text += text
-                                full_text += "\n"
-                            full_text += "\n" 
-            return full_text
+            
+            converter = DocumentConverter()
+            
+            
+            result = converter.convert(pdf_path)
+            
+            
+            markdown_output = result.document.export_to_markdown()
+            
+            return markdown_output
+            
         except Exception as e:
-            raise IOError(f"Could not read PDF. Reason: {e}")
+            raise IOError(f"Docling failed to process PDF. Reason: {e}")
 
     def _chunk_text(self, text: str, chunk_size: int, overlap_size: int) -> list[str]:
         """Helper function to split text into smaller, overlapping chunks."""
