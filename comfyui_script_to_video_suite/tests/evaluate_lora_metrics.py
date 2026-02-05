@@ -101,7 +101,7 @@ def evaluate_loader():
         print(f"   🚀 Throughput: {throughput:.2f} MB/s")
 
     except Exception as e:
-        print(f"❌ Load Failed: {e}")
+        print(f" Load Failed: {e}")
         return metrics
 
     # --- TEST 3: WEIGHT INTEGRITY CHECK ---

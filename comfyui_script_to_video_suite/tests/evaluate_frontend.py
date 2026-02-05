@@ -3,7 +3,6 @@ import os
 import json
 import tiktoken
 
-# --- SETUP PATHS ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 suite_root = os.path.dirname(current_dir)
 nodes_path = os.path.join(suite_root, "s2v_nodes")
@@ -11,7 +10,6 @@ nodes_path = os.path.join(suite_root, "s2v_nodes")
 if nodes_path not in sys.path:
     sys.path.insert(0, nodes_path)
 
-# Import your nodes
 try:
     from s2v_chunker_node import PDFChunker
     from s2v_executor_nodes import PromptUnpacker
@@ -20,7 +18,6 @@ except ImportError as e:
     print(f"❌ Error importing nodes: {e}")
     sys.exit(1)
 
-# --- UTILITIES ---
 def count_tokens(text):
     encoder = tiktoken.get_encoding("cl100k_base") # Standard GPT-4/Gemini encoding approximation
     return len(encoder.encode(text))
@@ -29,13 +26,11 @@ def count_tokens(text):
 def test_chunker():
     print("\n🔹 TEST 1: PDF Chunker Logic (Token Limits & Overlap)")
     
-    # 1. Create Synthetic Data (A long repetitive story)
-    # We want enough text to force a split.
     sentence = "Isaac walked into the facility. "
     full_text = sentence * 500 # Approx 3000-4000 tokens
     
-    chunk_limit = 1000 # Characters (Simulating the widget input)
-    overlap = 100      # Characters
+    chunk_limit = 1000
+    overlap = 100      
     
     # Instantiate Node
     chunker = PDFChunker()
@@ -68,27 +63,22 @@ def test_chunker():
         if tokens > max_token_count:
             max_token_count = tokens
             
-        # Check overlap
         if i > 0:
-            prev_end = chunks[i-1][-20:] # Last 20 chars of prev
-            curr_start = chunk[:20]      # First 20 chars of curr
-            # In a real overlap, these won't match exactly because of the shift,
-            # but we verify the chunk isn't empty.
+            prev_end = chunks[i-1][-20:]
+            curr_start = chunk[:20]      
             if not chunk:
                 overlap_success = False
 
     print(f"   Max Tokens per Chunk: {max_token_count}")
     
-    if max_token_count < 2000: # Safe limit for Gemini
+    if max_token_count < 2000: 
         print("   ✅ Token Budget: PASS (Well within limits)")
     else:
         print("   ⚠️ Token Budget: WARNING (Chunks might be too big)")
 
-# --- TEST 2: JSON SCHEMA & SYNCHRONIZATION ---
 def test_json_parsing():
     print("\n🔹 TEST 2: Prompt Generator Output Validation (JSON Schema)")
     
-    # This simulates a "Perfect" response from Gemini
     valid_json_response = """
     {
       "meta_summary": "A dark facility.",
