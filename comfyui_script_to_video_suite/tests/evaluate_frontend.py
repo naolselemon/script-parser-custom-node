@@ -15,7 +15,7 @@ try:
     from s2v_executor_nodes import PromptUnpacker
     print("✅ Frontend Modules imported.")
 except ImportError as e:
-    print(f"❌ Error importing nodes: {e}")
+    print(f"Error importing nodes: {e}")
     sys.exit(1)
 
 def count_tokens(text):
@@ -108,7 +108,7 @@ def test_json_parsing():
     if len(img) == len(vid) == 2:
         print("   ✅ Synchronization: PASS (Image count == Video count)")
     else:
-        print(f"   ❌ Synchronization: FAIL ({len(img)} vs {len(vid)})")
+        print(f"  Synchronization: FAIL ({len(img)} vs {len(vid)})")
 
     # Test 2: Bad Data (Handling missing keys)
     print("   Sub-test B: Malformed Data (Missing Video Prompt)...")
