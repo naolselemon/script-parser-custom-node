@@ -4,6 +4,10 @@ It takes the path to a PDF file, extracts all its text content, and then splits 
 text into smaller, manageable chunks. This is crucial for processing large scripts
 that would otherwise exceed the context limits of language models. each chunk will be processed separetly by the llm
 """
+
+
+
+
 import os
 import fitz  # PyMuPDF
 from docling.document_converter import DocumentConverter

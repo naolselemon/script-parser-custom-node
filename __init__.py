@@ -8,6 +8,7 @@ from .comfyui_script_to_video_suite.s2v_nodes.s2v_auto_lora_node import AutoLora
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_multi_lora_loader_node import MultiLoraLoader_S2V
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_fighting_detector_node import FightingSceneDetector_S2V, DragonBallLoRAConditional_S2V
 
+
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_rag_node import RagConsistencyNode_S2V
 NODE_CLASS_MAPPINGS = {
     "PDFChunker_S2V": PDFChunker,
@@ -20,7 +21,8 @@ NODE_CLASS_MAPPINGS = {
     "SmartSequencer_S2V": SmartSequencer_S2V,
     "MultiLoraLoader_S2V": MultiLoraLoader_S2V,
     "FightingSceneDetector_S2V": FightingSceneDetector_S2V,
-    "DragonBallLoRAConditional_S2V": DragonBallLoRAConditional_S2V
+    "DragonBallLoRAConditional_S2V": DragonBallLoRAConditional_S2V,
+    "ScriptKnowledgeExtractor_S2V": ScriptKnowledgeExtractor_S2V
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -34,7 +36,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SmartSequencer_S2V": "5. Smart Sequencer (Auto-Loop)",
     "MultiLoraLoader_S2V": "7. Multi LoRA Loader (S2V)",
     "FightingSceneDetector_S2V": "Fighting Scene Detector (S2V)",
-    "DragonBallLoRAConditional_S2V": "Dragon Ball LoRA Conditional (S2V)"
+    "DragonBallLoRAConditional_S2V": "Dragon Ball LoRA Conditional (S2V)",
+    "ScriptKnowledgeExtractor_S2V": "0. Knowledge Base Builder (S2V)"
 }
 
 # --- A confirmation message that your package was loaded ---
