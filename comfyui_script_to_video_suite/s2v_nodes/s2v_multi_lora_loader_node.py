@@ -1,10 +1,29 @@
+"""
+Multi-LoRA loader node for the Script-To-Video suite.
+Resolves LoRA names to filesystem paths.
+Builds configuration dictionaries for each resolved LoRA.
+Returns a list of LoRA configs or (None,) when none found.
+"""
+
 import folder_paths
 import os
 
 class MultiLoraLoader_S2V:
+    """
+    Prepares LoRA configuration dictionaries for downstream use.
+    Resolves provided LoRA names to paths and validates files.
+    Sets default merge and load metadata for each LoRA.
+    Returns a list used by later loader/merger nodes.
+    """
 
     @classmethod
     def INPUT_TYPES(cls):
+        """
+        Return the node's input type specification (required inputs).
+        Declares `lora_stack` as the required `LORA_STACK` input.
+        Expects tuples (name, strength_model, strength_clip).
+        Only name and strength_model are used by this loader.
+        """
         return {
             "required": {
                 "lora_stack": ("LORA_STACK",), 
