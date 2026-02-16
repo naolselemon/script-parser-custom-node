@@ -44,13 +44,13 @@ class MultiLoraLoader_S2V:
 
         loras_list = []
 
-        for lora_name, strength_model, strength_clip in lora_stack:
-            #  LoRA file path
+        for lora_name, strength_model, _ in lora_stack:
+            #  Resolve LoRA file path
             resolved_path = folder_paths.get_full_path("loras", lora_name)
             
             # Fallback: check if lora_name is already an absolute path
             if resolved_path is None and os.path.exists(lora_name):
-                resolved_path = lora_name
+                resolved_path = os.path.realpath(lora_name)
 
             if resolved_path is None:
                 print(f"❌ LoRA file not found: {lora_name}")
