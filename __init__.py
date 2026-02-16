@@ -7,6 +7,7 @@ from .comfyui_script_to_video_suite.s2v_nodes.s2v_utility_nodes import StringSwi
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_auto_lora_node import AutoLoraLoader_S2V
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_multi_lora_loader_node import MultiLoraLoader_S2V
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_fighting_detector_node import FightingSceneDetector_S2V, DragonBallLoRAConditional_S2V
+from .comfyui_script_to_video_suite.s2v_nodes.s2v_video_merger_node import VideoMergerNode
 
 
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_rag_node import RagConsistencyNode_S2V
@@ -22,6 +23,7 @@ NODE_CLASS_MAPPINGS = {
     "MultiLoraLoader_S2V": MultiLoraLoader_S2V,
     "FightingSceneDetector_S2V": FightingSceneDetector_S2V,
     "DragonBallLoRAConditional_S2V": DragonBallLoRAConditional_S2V,
+    "VideoMerger_S2V": VideoMergerNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -36,6 +38,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MultiLoraLoader_S2V": "7. Multi LoRA Loader (S2V)",
     "FightingSceneDetector_S2V": "Fighting Scene Detector (S2V)",
     "DragonBallLoRAConditional_S2V": "Dragon Ball LoRA Conditional (S2V)",
+    "VideoMerger_S2V": "Video Merger (S2V)"
 }
 
 # --- A confirmation message that your package was loaded ---

@@ -11,29 +11,58 @@ class MultiLoraLoader_S2V:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("MODEL",),
-                "clip": ("CLIP",),
-                "lora_stack": ("LORA_STACK",),  # now required
+                "model": ("WANVIDEOMODEL",), 
+                "clip": ("WANVIDEOTEXTEMBEDS",), 
+                "lora_stack": ("LORA_STACK",), 
             }
         }
-    
-    RETURN_TYPES = ("MODEL", "CLIP")
+
+
+    RETURN_TYPES = ("WANVIDEOMODEL", "WANVIDEOTEXTEMBEDS")
+    RETURN_NAMES = ("wan_model", "wan_t5_clip")
     FUNCTION = "load_loras"
     CATEGORY = "Script To Video Suite"
 
     def load_loras(self, model, clip, lora_stack):
-        result = (model, clip)
+        if not lora_stack:
+            return (model, clip)
 
-        # Apply loras from incoming stack
-        for lora_path, strength_model, strength_clip in lora_stack:
-            # Resolve full path in case AutoLoraLoader_S2V returned just a filename
-            if not os.path.isabs(lora_path) and os.path.sep not in lora_path:
-                resolved_path = folder_paths.get_full_path("loras", lora_path)
-            else:
-                resolved_path = lora_path
+        print(f"🔥 MultiLora: Processing stack with {len(lora_stack)} items...")
 
-            lora_sd = comfy.utils.load_torch_file(resolved_path)
-            result = comfy.sd.load_lora_for_models(result[0], result[1], lora_sd, strength_model, strength_clip)
+        current_model = model
+        current_clip = clip
 
-        return result
+        for lora_name, strength_model, strength_clip in lora_stack:
+            resolved_path = None
+            resolved_path = folder_paths.get_full_path("loras", lora_name)
+            
+            if resolved_path is None and os.path.exists(lora_name):
+                resolved_path = lora_name
 
+            if resolved_path is None:
+                print(f"❌ Error: LoRA file not found: {lora_name}")
+                continue
+
+            print(f"   -> Loading: {lora_name}")
+            
+            try:
+                lora_sd = comfy.utils.load_torch_file(resolved_path)
+                
+                # --- NEW LOGIC: Try/Except/Fallback ---
+                try:
+                    # Attempt 1: Patch Model AND Clip (Standard behavior)
+                    current_model, current_clip = comfy.sd.load_lora_for_models(
+                        current_model, current_clip, lora_sd, strength_model, strength_clip
+                    )
+                except AttributeError:
+                    # Attempt 2: If CLIP is incompatible (e.g. WanVideo Embeddings Dict), 
+                    # we ignore CLIP and ONLY patch the Model.
+                    print(f"⚠️ Warning: CLIP/T5 is incompatible with standard patching. Applying LoRA to MODEL only.")
+                    current_model, _ = comfy.sd.load_lora_for_models(
+                        current_model, None, lora_sd, strength_model, 0
+                    )
+            except Exception as e:
+                print(f"❌ Error merging LoRA {lora_name}: {e}")
+                continue
+
+        return (current_model, current_clip)
