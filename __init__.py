@@ -36,7 +36,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MultiLoraLoader_S2V": "7. Multi LoRA Loader (S2V)",
     "FightingSceneDetector_S2V": "Fighting Scene Detector (S2V)",
     "DragonBallLoRAConditional_S2V": "Dragon Ball LoRA Conditional (S2V)",
-    "ScriptKnowledgeExtractor_S2V": "0. Knowledge Base Builder (S2V)"
 }
 
 # --- A confirmation message that your package was loaded ---
