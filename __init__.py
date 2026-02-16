@@ -22,7 +22,6 @@ NODE_CLASS_MAPPINGS = {
     "MultiLoraLoader_S2V": MultiLoraLoader_S2V,
     "FightingSceneDetector_S2V": FightingSceneDetector_S2V,
     "DragonBallLoRAConditional_S2V": DragonBallLoRAConditional_S2V,
-    "ScriptKnowledgeExtractor_S2V": ScriptKnowledgeExtractor_S2V
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

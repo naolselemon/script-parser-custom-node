@@ -16,24 +16,7 @@ class MultiLoraLoader_S2V:
                 "lora_stack": ("LORA_STACK",),  # now required
             }
         }
-
-
-
-#The current 
-#DragonBallLoRAConditional_S2V
-# node outputs a special WANVIDLORA configuration (likely for WanVideo wrappers that handle LoRAs differently), while your current 
-#MultiLoraLoader
-# applies LoRAs directly to the standard ComfyUI MODEL.
-
-#I can upgrade the Multi LoRA Loader (S2V) to support both:
-
-#Standard Mode: Apply LoRAs to MODEL and CLIP (like KSampler expects).
-#WanVideo Mode: Output a list of WANVIDLORA configs (like the Fighting Detector node).
-#This will allow you to use your Auto-Detected Characters with specialized video nodes that require the custom config format.
-
-#I will update 
-#s2v_multi_lora_loader_node.py
-# now.
+    
     RETURN_TYPES = ("MODEL", "CLIP")
     FUNCTION = "load_loras"
     CATEGORY = "Script To Video Suite"
