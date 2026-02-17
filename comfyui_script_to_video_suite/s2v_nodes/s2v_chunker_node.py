@@ -4,8 +4,13 @@ It takes the path to a PDF file, extracts all its text content, and then splits 
 text into smaller, manageable chunks. This is crucial for processing large scripts
 that would otherwise exceed the context limits of language models. each chunk will be processed separetly by the llm
 """
+
+
+
+
 import os
 import fitz  # PyMuPDF
+from docling.document_converter import DocumentConverter
 
 class PDFChunker:
     """
@@ -41,15 +46,24 @@ class PDFChunker:
     CATEGORY = "Script To Video Suite"
 
     def _extract_text_from_pdf(self, pdf_path: str) -> str:
-        """Helper function to extract text content from a PDF file."""
+        """Uses Docling to extract structured Markdown text."""
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found at '{pdf_path}'")
+        
         try:
-            with fitz.open(pdf_path) as doc:
-                full_text = "".join(page.get_text() for page in doc)
-            return full_text
+            
+            converter = DocumentConverter()
+            
+            
+            result = converter.convert(pdf_path)
+            
+            
+            markdown_output = result.document.export_to_markdown()
+            
+            return markdown_output
+            
         except Exception as e:
-            raise IOError(f"Could not read PDF. Reason: {e}")
+            raise IOError(f"Docling failed to process PDF. Reason: {e}")
 
     def _chunk_text(self, text: str, chunk_size: int, overlap_size: int) -> list[str]:
         """Helper function to split text into smaller, overlapping chunks."""

@@ -17,6 +17,7 @@ class MultiLoraLoader_S2V:
             }
         }
 
+
     RETURN_TYPES = ("WANVIDEOMODEL", "WANVIDEOTEXTEMBEDS")
     RETURN_NAMES = ("wan_model", "wan_t5_clip")
     FUNCTION = "load_loras"
