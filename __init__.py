@@ -9,6 +9,7 @@ from .comfyui_script_to_video_suite.s2v_nodes.s2v_multi_lora_loader_node import 
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_fighting_detector_node import FightingSceneDetector_S2V, DragonBallLoRAConditional_S2V
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_video_merger_node import VideoMergerNode
 
+
 from .comfyui_script_to_video_suite.s2v_nodes.s2v_rag_node import RagConsistencyNode_S2V
 NODE_CLASS_MAPPINGS = {
     "PDFChunker_S2V": PDFChunker,
