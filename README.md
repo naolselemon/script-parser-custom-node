@@ -72,21 +72,23 @@ pip install -r requirements.txt
 ### Relay Server Configuration
 
 The suite uses a Gemini AI relay server for processing. The default endpoint is pre-configured. 
-This was required because API useage is restricted in some location and if it is needed to abstract the API calls in another location.
+This was required because API usage is restricted in some location and if it is needed to abstract the API calls in another location.
 
-steps
+Steps
 1. clone the gemeni relay repository. `git clone https://github.com/bisratberhanu/gemini-relay.git`
 2. set your gemeni api key in the environment variable. 
 3. run the server by running `GEMINI_API_KEY="your-gemeni-api-key" gunicorn --bind 127.0.0.1:8080 --timeout 700 app:app`
 4. In a new terminal run the command `ngrok http 8080`. make sure ngrok is installed on your computer.
 5. copy the server location it will look some thing like `https://unique-name.ngrok-free.dev`
-6. Then copy that url to your env file **in this repostiory** with `/generate` added. 
+6. copy `.env.example` to `.env` in this repository:
+   ```bash
+   cp .env.example .env
 ### Troubleshooting
 
 - **Nodes not appearing in ComfyUI:**  
   Ensure the repository is cloned into `ComfyUI/custom_nodes/` and restart ComfyUI.
 - **Relay server connection errors:**  
-  Check your internet connection and verify `RELAY_SERVER_URL` in `gemini_relay_client.py`.
+  Check your internet connection and verify that `RELAY_SERVER_URL` is correctly set in your environment or in the `.env` file used by this project.
 
 
 
