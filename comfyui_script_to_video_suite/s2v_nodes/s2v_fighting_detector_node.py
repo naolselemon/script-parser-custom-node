@@ -1,8 +1,6 @@
 import json
 import os
 import folder_paths
-import comfy.utils
-import comfy.sd
 from .gemini_relay_client import ask_gemini_via_relay
 
 
@@ -25,9 +23,11 @@ def load_prompt_from_file(filename: str) -> str:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        raise f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
-    except Exception as e:
-        raise f"ERROR: Could not read prompt file. Reason: {e}"
+        raise FileNotFoundError(
+            f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
+        )
+    except Exception as e:        
+        raise IOError(f"ERROR: Could not read prompt file. Reason: {e}") from e
 
 SYSTEM_PROMPT = load_prompt_from_file("fighting_scene_classifier_prompt.txt")
 

@@ -67,7 +67,7 @@ class VideoMergerNode:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("output_path",)
     FUNCTION = "merge_videos"
-    CATEGORY = "video"
+    CATEGORY = "Script To Video Suite/Video"
     OUTPUT_NODE = True
 
     def discover_videos(self, directory_path: str) -> List[Path]:
@@ -275,4 +275,4 @@ class VideoMergerNode:
                     clip.close()
                 except:
                     pass
-            raise e
+            raise 

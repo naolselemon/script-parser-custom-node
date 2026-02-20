@@ -3,19 +3,52 @@ import os
 import json 
 from .gemini_relay_client import ask_gemini_via_relay
 
-def load_master_prompt_from_file(filename: str) -> str:
-    current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, filename)
+# 1. Provide a hardcoded fallback so the node works even if the .txt file is missing
+INTERNAL_FALLBACK_PROMPT = """You are an expert Prompt Engineer for anime visuals. 
+Return a JSON object with 'meta_summary' and 'panels' list."""
+
+def load_master_prompt_from_file() -> str:
+    """Helper to try and load the file, returning fallback on any failure."""
+    filename = "prompt_generation_meta_prompt.txt"
+    file_path = os.path.join(os.path.dirname(__file__), filename)
     
+    if not os.path.exists(file_path):
+        return INTERNAL_FALLBACK_PROMPT
+        
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
-    except FileNotFoundError:
-        return f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
-    except Exception as e:
-        return f"ERROR: Could not read prompt file. Reason: {e}"
+    except Exception:
+        return INTERNAL_FALLBACK_PROMPT
 
-PROMPT_GENERATION_META_PROMPT = load_master_prompt_from_file("prompt_generation_meta_prompt.txt")
+class PromptGenerator:
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "storyboard_text": ("STRING", {"multiline": True}),
+                "master_prompt": ("STRING", {
+                    # 2. Call the function here (Lazy Loading) 
+                    # instead of using a global variable
+                    "default": load_master_prompt_from_file(),
+                    "multiline": True
+                }),
+                "batch_size": ("INT", {"default": 50, "min": 10, "max": 200, "step": 10}),
+            },
+            "optional": {
+                "debug_mode": ("BOOLEAN", {"default": False}),
+                "debug_filepath": ("STRING", {"default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("final_prompts",)
+    FUNCTION = "generate_prompts_in_batches"
+    CATEGORY = "Script To Video Suite"
 
 class PromptGenerator:
     """
@@ -109,7 +142,6 @@ class PromptGenerator:
             if response_text.startswith("Error:"):
                 error_message = f"❌ FATAL ERROR on Batch {batch_num}: The relay failed.\n--> Reason: {response_text}"
                 print(error_message)
-                print("This is a debug message")
                 raise Exception(error_message)
 
             # --- JSON PARSING & MERGING LOGIC ---

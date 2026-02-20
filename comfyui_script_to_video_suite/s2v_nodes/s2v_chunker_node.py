@@ -2,7 +2,7 @@
 This node, "PDF Chunker (S2V)", is the starting point of the Script-to-Video pipeline.
 It takes the path to a PDF file, extracts all its text content, and then splits that
 text into smaller, manageable chunks. This is crucial for processing large scripts
-that would otherwise exceed the context limits of language models. each chunk will be processed separetly by the llm
+that would otherwise exceed the context limits of language models. each chunk will be processed separately by the llm
 """
 
 

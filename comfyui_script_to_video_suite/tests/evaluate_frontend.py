@@ -11,6 +11,7 @@ if nodes_path not in sys.path:
     sys.path.insert(0, nodes_path)
 
 try:
+    # PDFChunker import remains to verify code integrity during the test
     from s2v_chunker_node import PDFChunker
     from s2v_executor_nodes import PromptUnpacker
     print("✅ Frontend Modules imported.")
@@ -32,15 +33,7 @@ def test_chunker():
     chunk_limit = 1000
     overlap = 100      
     
-    # Instantiate Node
-    chunker = PDFChunker()
-    
-    # We bypass the PDF read and test the splitting logic directly
-    # (assuming your node has a helper method, if not we test the splitting logic here)
-    # Note: Since your node reads from PDF directly, we will simulate the behavior
-    # by creating a temporary PDF or just testing the splitting logic if it's separated.
-    
-    # For this test, we will assume standard text splitting logic used in your node:
+    # Simulating the internal logic of the chunker
     chunks = []
     start = 0
     while start < len(full_text):
@@ -56,18 +49,11 @@ def test_chunker():
     
     # Metrics
     max_token_count = 0
-    overlap_success = True
     
-    for i, chunk in enumerate(chunks):
+    for chunk in chunks:
         tokens = count_tokens(chunk)
         if tokens > max_token_count:
             max_token_count = tokens
-            
-        if i > 0:
-            prev_end = chunks[i-1][-20:]
-            curr_start = chunk[:20]      
-            if not chunk:
-                overlap_success = False
 
     print(f"   Max Tokens per Chunk: {max_token_count}")
     
@@ -89,7 +75,6 @@ def test_json_parsing():
     }
     """
     
-    # This simulates a "Bad" response (Missing video prompt)
     bad_json_response = """
     {
       "meta_summary": "Error test",
@@ -103,7 +88,7 @@ def test_json_parsing():
     
     # Test 1: Valid Data
     print("   Sub-test A: Valid JSON input...")
-    img, vid, sum_ = unpacker.unpack_prompts(valid_json_response)
+    img, vid, _ = unpacker.unpack_prompts(valid_json_response)
     
     if len(img) == len(vid) == 2:
         print("   ✅ Synchronization: PASS (Image count == Video count)")
@@ -112,9 +97,8 @@ def test_json_parsing():
 
     # Test 2: Bad Data (Handling missing keys)
     print("   Sub-test B: Malformed Data (Missing Video Prompt)...")
-    img_bad, vid_bad, sum_bad = unpacker.unpack_prompts(bad_json_response)
+    img_bad, vid_bad, _ = unpacker.unpack_prompts(bad_json_response)
     
-    # Your updated code handles this by inserting empty strings, keeping length equal
     if len(img_bad) == len(vid_bad):
         print("   ✅ Fail-Safe Logic: PASS (Handled missing key gracefully)")
         print(f"      Video List: {vid_bad}") 
