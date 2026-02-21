@@ -85,7 +85,7 @@
     #text(size: 28pt, weight: "black", fill: brand-primary)[ComfyUI Script-to-Video Suite]
     
     #v(1em)
-    #text(size: 18pt, weight: "light", fill: gray)[Official User Manual]
+    #text(size: 18pt, weight: "light", fill: gray)[Official Users Manual]
     
     #v(3em)
     #text(size: 12pt)[
@@ -170,6 +170,7 @@ The workflow acts as an automated funnel, translating documents into visual data
 
 == PDF Chunker (S2V)
 *Purpose:* Extracts and segments screenplay text into structured overlapping chunks.
+
 *Inputs:*
 - `pdf_path` – Path to source PDF.
 - `chunk_size` – Character count per segment.
@@ -180,6 +181,7 @@ The workflow acts as an automated funnel, translating documents into visual data
 
 == Storyboard Generator (S2V)
 *Purpose:* Transforms text chunks into cinematic storyboard panels using Gemini AI.
+
 *Inputs:*
 - `chunks` – Output from the PDF Chunker.
 - `master_prompt` – Directs the AI on style.
@@ -188,6 +190,7 @@ The workflow acts as an automated funnel, translating documents into visual data
 
 == Prompt Generator (S2V)
 *Purpose:* Converts storyboard panels into optimized prompts for models like WanVideo.
+
 *Inputs:*
 - `storyboard_text`
 *Outputs:*
@@ -195,6 +198,7 @@ The workflow acts as an automated funnel, translating documents into visual data
 
 == Prompt Unpacker (S2V)
 *Purpose:* Parses the aggregated text from the Prompt Generator into clean, iterable Python lists.
+
 *Inputs:*
 - `prompt_text`
 *Outputs:*
@@ -204,48 +208,92 @@ The workflow acts as an automated funnel, translating documents into visual data
 
 == Iterative Executor (S2V)
 *Purpose:* Smartly sequences the generation of scenes to avoid GPU VRAM crashes.
+
 *Inputs:*
 - `image_prompts` & `video_prompts`
 - `mode` (Manual / Auto)
 *Outputs:*
 - `image_prompt` & `video_prompt` (Single strings outputted one by one).
 
-#colbreak()
 
+
+#colbreak()
 = Enhancement Nodes (Optional)
 
 These nodes can be injected into the main pipeline to improve visual consistency or automate post-processing.
 
 == RAG Consistency Engine
 *Purpose:* Injects predefined character and location data to ensure cross-scene visual consistency.
+
 *Placement:* Between Storyboard Gen and Prompt Gen.
+
 *Inputs:* `storyboard_text`, `enable_rag`.
+
 *Outputs:* `enriched_storyboard`.
 
-== Gemini Auto LoRA Loader
-*Purpose:* Automatically detects character triggers within the active prompt and loads the correct LoRA model weights.
-*Placement:* Before the main Model Loader or Sampler.
-*Outputs:* `lora_stack` or `loras_list`.
 
-== Fighting Scene Detector
-*Purpose:* Identifies combat-intensive scene descriptions and conditionally activates high-motion LoRAs (like Dragon Ball styles).
-*Outputs:* Boolean condition and targeted `lora`.
+== Auto LoRA Loader (S2V)
+*Purpose:* Dynamically scans an image prompt to identify a single main character trigger, then automatically loads the corresponding LoRA model from your `loras/` folder by bypassing manual string-matching.
+
+*Inputs:*
+- `image_prompt (STRING)`: The narrative text to analyze for character names.
+- `lora_strength (FLOAT)`: The impact strength of the selected LoRA (Default: 1.0).
+
+*Outputs:*
+- `lora_stack (LORA_STACK)`: Output containing the configured LoRA to be passed to a model loader.
+
+
+== Multi LoRA Loader (S2V)
+*Purpose:* Intended for use when multiple characters or stylistic elements are explicitly required. It resolves provided LoRA names to paths, validates them, and prepares a stack for merging.
+
+*Inputs:* 
+- `lora_stack (LORA_STACK)`: Accepts tuples of `(name, strength)`.
+
+*Outputs:*
+- `loras_list (WANVIDLORA)`: A list of properly configured LoRA dictionaries ready for downstream video model processing.
+
+
+== Fighting Scene Detector (S2V)
+*Purpose:* Determines if a given prompt describes a combat, action, or fighting scene via a quick semantic analysis ping to the Gemini Relay Server.
+
+*Inputs:*
+- `input (STRING)`: The prompt text to evaluate.
+
+*Outputs:*
+- `condition (BOOLEAN)`: Returns `True` if action/combat is detected, `False` otherwise.
+
+
+== Dragon Ball LoRA Conditional (S2V)
+*Purpose:* Acts as a conditional gatekeeper, typically receiving the boolean condition from the Fighting Scene Detector. If True, it loads high-action LoRA weights (e.g., Dragon Ball style); if False, it passes `None`.
+
+*Inputs:*
+- `condition (BOOLEAN)`: The `True/False` trigger.
+- `lora_name (STRING)`: Selection from your `loras` folder.
+- `strength (FLOAT)`: Impact strength weight.
+
+*Outputs:*
+- `lora (WANVIDLORA)`: The conditioned LoRA configuration, or `None`.
 
 == Video Merger (S2V)
 *Purpose:* Combines all rendered `.mp4` scene outputs into a single, cohesive master video file.
+
 *Placement:* Final execution step after scenes are saved.
+
 *Inputs:* `directory_path` (Output folder), `transition_duration`, `max_height`.
+
 *Outputs:* `output_path` (Final MP4 file). 
+
 *Behavior:* Handles crossfade transitions, resolution normalization, and audio leveling safely.
 
-#v(2em)
+---
 
-#block(
-  fill: rgb("#fff3cd"),
-  stroke: 1pt + rgb("#ffeeba"),
-  inset: 1em,
-  radius: 0.5em
-)[
-  *⚠️ Pro-Tip for Stability:* \
-  Always enable `force_offload` in your Text Encoders and Video Samplers when using the Iterative Executor. This clears memory between sequential generations and prevents Out-of-Memory (OOM) errors during long films.
-]
+= System Infrastructure
+
+== Gemini Relay Client
+*Purpose:* A foundational dependency for the AI generation nodes. It routes all language processing requests to an external, lightweight relay server, bypassing direct API blocking or geographical restrictions in ComfyUI.
+
+*Configuration Requirements:*
+The Storyboard and Prompt Generators invisibly rely on this client. To function:
+1. Run the external `gemini-relay` Python server on port `8080`.
+2. The relay server must be configured with your `GEMINI_API_KEY`.
+3. If running remotely or exposed via ngrok, set `RELAY_SERVER_URL` in your `.env` file to point to your active relay instance.
