@@ -264,7 +264,7 @@ These nodes can be injected into the main pipeline to improve visual consistency
 
 
 == Dragon Ball LoRA Conditional (S2V)
-*Purpose:* Acts as a conditional gatekeeper, typically receiving the boolean condition from the Fighting Scene Detector. If True, it loads high-action LoRA weights (e.g., Dragon Ball style); if False, it passes `None`.
+*Purpose:* Acts as a conditional gatekeeper, typically receiving the boolean condition from the Fighting Scene Detector. If True, it loads high-action LoRA weights (e.g., Dragon Ball style). if False, it passes `None`.
 
 *Inputs:*
 - `condition (BOOLEAN)`: The `True/False` trigger.
@@ -273,6 +273,18 @@ These nodes can be injected into the main pipeline to improve visual consistency
 
 *Outputs:*
 - `lora (WANVIDLORA)`: The conditioned LoRA configuration, or `None`.
+
+== StringSwitch (S2V)
+*Purpose:* A utility logic gate that allows users to seamlessly switch between using an AI-generated string from the workflow or a manually entered custom string.
+
+*Inputs:*
+- `manual_input (STRING)`: Text to use if the manual override is enabled.
+- `use_manual (BOOLEAN)`: Toggle switch. If `True`, it outputs the manual entry. If `False`, it outputs the connected generated string.
+- `generated_input (STRING)`: The text output from a previous node (Optional, but required if `use_manual` is False).
+
+*Outputs:*
+- `selected_string (STRING)`: The chosen string routed forward in the pipeline.
+
 
 == Video Merger (S2V)
 *Purpose:* Combines all rendered `.mp4` scene outputs into a single, cohesive master video file.
@@ -285,7 +297,7 @@ These nodes can be injected into the main pipeline to improve visual consistency
 
 *Behavior:* Handles crossfade transitions, resolution normalization, and audio leveling safely.
 
----
+
 
 = System Infrastructure
 
