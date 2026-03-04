@@ -21,15 +21,16 @@ class StringSwitch_S2V:
 
     def switch_logic(self, manual_input, use_manual, generated_input=None):
         if use_manual:
+            if not manual_input or not manual_input.strip():
+                error_msg = "❌ FATAL ERROR: 'use_manual' is True, but 'manual_input' is empty. Please provide text."
+                print(error_msg)
+                raise ValueError(error_msg)
             print("🔧 S2V Switch: Using MANUAL input.")
             return (manual_input,)
         
         if generated_input is None:
-            error_message = "❌ FATAL ERROR: Switch is in Workflow Mode (use_manual=False), but nothing is connected to 'generated_input'!"
-            print(error_message)
-            raise ValueError(error_message)
-             
-        print("🔄 S2V Switch: Using GENERATED input.")
+            raise ValueError("❌ FATAL ERROR: Switch is in Workflow Mode, but nothing is connected to 'generated_input'!")
+
         return (generated_input,)
 
             

@@ -3,19 +3,24 @@ import os
 import json 
 from .gemini_relay_client import ask_gemini_via_relay
 
-def load_master_prompt_from_file(filename: str) -> str:
-    current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, filename)
+# 1. Hardcoded fallback to ensure the node never crashes if the text file is missing
+INTERNAL_FALLBACK_PROMPT = """You are an expert Prompt Engineer for anime visuals. 
+Your task is to process this storyboard and return a SINGLE JSON OBJECT.
+Structure: {"meta_summary": "...", "panels": [{"panel_number": 1, "image_prompt": "...", "video_prompt": "..."}]}"""
+
+def load_master_prompt_from_file() -> str:
+    """Helper to try and load the prompt file lazily."""
+    filename = "prompt_generation_meta_prompt.txt"
+    file_path = os.path.join(os.path.dirname(__file__), filename)
     
+    if not os.path.exists(file_path):
+        return INTERNAL_FALLBACK_PROMPT
+        
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
-    except FileNotFoundError:
-        return f"ERROR: Prompt file not found at {file_path}. Please make sure '{filename}' is in the same directory as the node's Python script."
-    except Exception as e:
-        return f"ERROR: Could not read prompt file. Reason: {e}"
-
-PROMPT_GENERATION_META_PROMPT = load_master_prompt_from_file("prompt_generation_meta_prompt.txt")
+    except Exception:
+        return INTERNAL_FALLBACK_PROMPT
 
 class PromptGenerator:
     """
@@ -33,15 +38,14 @@ class PromptGenerator:
             "required": {
                 "storyboard_text": ("STRING", {"multiline": True}),
                 "master_prompt": ("STRING", {
-                    "default": PROMPT_GENERATION_META_PROMPT,
+                    "default": load_master_prompt_from_file(),
                     "multiline": True
                 }),
                 "batch_size": ("INT", {"default": 50, "min": 10, "max": 200, "step": 10}),
             },
-           
             "optional": {
                 "debug_mode": ("BOOLEAN", {"default": False}),
-                "debug_filepath": ("STRING", {"default": "C:\\path\\to\\your\\debug_storyboard.txt"}),
+                "debug_filepath": ("STRING", {"default": ""}),
             }
         }
 
@@ -61,35 +65,28 @@ class PromptGenerator:
         
         # --- DEBUG MODE LOGIC ---
         if debug_mode:
-            print("💡 DEBUG MODE IS ON. Ignoring 'storyboard_text' input and loading from file.")
+            print("💡 DEBUG MODE IS ON. Loading from file.")
             try:
                 if not os.path.exists(debug_filepath):
-                    raise FileNotFoundError(f"Debug file not found at path: {debug_filepath}")
-                
+                    raise FileNotFoundError(f"Debug file not found: {debug_filepath}")
                 with open(debug_filepath, 'r', encoding='utf-8') as f:
                     storyboard_text = f.read()
-                print(f"✅ Successfully loaded debug data from: {debug_filepath}")
             except Exception as e:
-                error_message = f"❌ DEBUG ERROR: Failed to load file. Reason: {e}"
-                print(error_message)
-                raise e 
+                raise ValueError(f"❌ DEBUG ERROR: {e}")
         else:
             print("Executing 'Prompt Generator' node in normal mode...")
         
         if not storyboard_text or not storyboard_text.strip():
-            error_message = " FATAL ERROR: Input 'storyboard_text' is empty!"
-            print(error_message) 
-            raise ValueError(error_message)
+            raise ValueError("❌ FATAL ERROR: Input 'storyboard_text' is empty!")
 
         all_panels = self._split_storyboard_into_panels(storyboard_text)
         if not all_panels:
-            print("⚠️ WARNING: No valid panels found in storyboard text. Aborting.")
+            print("⚠️ WARNING: No valid panels found. Returning empty.")
             return ("",)
 
         # --- PREPARE DATA STRUCTURES FOR MERGING ---
         merged_meta_summary = ""
         merged_panels_list = []
-        
         total_batches = (len(all_panels) + batch_size - 1) // batch_size
 
         for i in range(0, len(all_panels), batch_size):
@@ -98,53 +95,31 @@ class PromptGenerator:
             
             batch_of_panels = all_panels[i:i + batch_size]
             batch_storyboard_text = "\n\n--- PANEL BREAK ---\n\n".join(batch_of_panels)
-
-            print(f"Sending batch of {len(batch_of_panels)} panels ({len(batch_storyboard_text)} chars) to relay...")
             
             full_prompt = f"{master_prompt}\n\n--- STORYBOARD TO PROCESS ---\n\n{batch_storyboard_text}"
-            
             response_text = ask_gemini_via_relay(full_prompt)
             
-            # Basic error check
             if response_text.startswith("Error:"):
-                error_message = f"❌ FATAL ERROR on Batch {batch_num}: The relay failed.\n--> Reason: {response_text}"
-                print(error_message)
-                print("This is a debug message")
-                raise Exception(error_message)
+                raise Exception(f"❌ FATAL ERROR on Batch {batch_num}: {response_text}")
 
-            # --- JSON PARSING & MERGING LOGIC ---
             try:
-                # 1. Clean markdown code blocks if Gemini added them
                 cleaned_json_text = response_text.replace("```json", "").replace("```", "").strip()
-                
-                # 2. Parse the batch JSON
                 batch_data = json.loads(cleaned_json_text)
                 
-                # 3. Extract Summary (Only need it from the first batch)
                 if batch_num == 1:
                     merged_meta_summary = batch_data.get("meta_summary", "No summary provided.")
                 
-                # 4. Extract Panels and append to master list
                 batch_panels = batch_data.get("panels", [])
                 if isinstance(batch_panels, list):
                     merged_panels_list.extend(batch_panels)
-                    print(f"✅ Batch {batch_num}: Successfully extracted {len(batch_panels)} panels.")
                 else:
-                    error_message = f"❌ FATAL ERROR on Batch {batch_num}: 'panels' key is not a list. Halting processing.\n--> Raw value: {repr(batch_panels)}"
-                    print(error_message)
-                    raise Exception(error_message)
+                    raise ValueError(f"Batch {batch_num} 'panels' is not a list.")
 
             except json.JSONDecodeError as e:
-                print(f"❌ JSON PARSE ERROR on Batch {batch_num}: {e}")
-                print(f"Raw response was: {response_text[:100]}...")
-                # We raise exception here because if one batch fails, the array alignment breaks
-                raise Exception(f"Batch {batch_num} returned invalid JSON. Check console for details.")
+                raise Exception(f"❌ JSON PARSE ERROR on Batch {batch_num}: {e}")
 
-        # --- FINAL ASSEMBLY ---
         final_structure = {
             "meta_summary": merged_meta_summary,
             "panels": merged_panels_list
         }
-        final_output_string = json.dumps(final_structure, indent=2)
-        print(f"✅ All batches complete. Total panels merged: {len(merged_panels_list)}")
-        return (final_output_string,)
+        return (json.dumps(final_structure, indent=2),)

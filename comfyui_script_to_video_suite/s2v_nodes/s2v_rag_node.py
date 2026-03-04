@@ -97,21 +97,22 @@ class RagConsistencyNode_S2V:
             error_msg = "❌ FATAL ERROR: Input 'storyboard_text' is empty! Check the previous node."
             print(error_msg)
             raise ValueError(error_msg)
+        # 2.  CHECK IF ENABLED
+        if not enable_rag:
+            print("RAG Node: RAG is disabled via toggle. Passing text through.")
+            return (storyboard_text,)
 
-        # 2. CRITICAL: Check for RAG Import Errors
+        # 3. CRITICAL: Check for RAG Import Errors
         if not RAG_AVAILABLE:
             error_msg = f"❌ FATAL ERROR: RAG Modules failed to load.\nReason: {RAG_IMPORT_ERROR}\n\nTroubleshooting:\n1. Check if 'rag_system' folder exists.\n2. Run 'pip install rich sentence-transformers faiss-cpu'."
             print(error_msg)
             # This turns the node RED and stops execution
             raise ImportError(error_msg)
             
-        if not enable_rag:
-            print("RAG Node: RAG is disabled via toggle. Passing text through.")
-            return (storyboard_text,)
-
+        
         print("🧠 S2V RAG: Starting enrichment process...")
         
-        # 3. Try to initialize engine 
+        # 4. Try to initialize engine 
         try:
             engine = self._initialize_engine()
         except Exception as e:

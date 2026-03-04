@@ -120,7 +120,7 @@ def run_semantic_evaluation():
         
         status = "⚪"
         if has_entities and similarity > 0.25: status = "✅ Good Match"
-        elif has_entities and similarity < 0.4: status = "⚠️ Low Relevance"
+        elif has_entities and similarity <= 0.25: status = "⚠️ Low Relevance"
         elif not has_entities and similarity == 0: status = "✅ Clean Skip"
 
         print(f"Query: '{query[:40]}...'")
