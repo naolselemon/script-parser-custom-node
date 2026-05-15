@@ -61,7 +61,8 @@ git clone https://github.com/Long-form-AI-video-generation/script-parser-custom-
 
 ```bash
 cd script-parser-custom-node
-pip install PyMuPDF requests
+cd comfyui_script_to_video_suite
+pip install -r requirements.txt
 ```
 
 3. **Restart ComfyUI** to load the custom nodes
@@ -71,17 +72,24 @@ pip install PyMuPDF requests
 ### Relay Server Configuration
 
 The suite uses a Gemini AI relay server for processing. The default endpoint is pre-configured. 
+This was required because API usage is restricted in some location and if it is needed to abstract the API calls in another location.
 
-To use your own relay server, update the `RELAY_SERVER_URL` in the gemini_relay_client.py file.
-
+Steps
+1. clone the gemeni relay repository. `git clone https://github.com/bisratberhanu/gemini-relay.git`
+2. set your gemeni api key in the environment variable. 
+3. run the server by running `GEMINI_API_KEY="your-gemeni-api-key" gunicorn --bind 127.0.0.1:8080 --timeout 700 app:app`
+4. In a new terminal run the command `ngrok http 8080`. make sure ngrok is installed on your computer.
+5. copy the server location it will look some thing like `https://unique-name.ngrok-free.dev`
+6. copy `.env.example` to `.env` in this repository:
+   ```bash
+   cp .env.example .env
 ### Troubleshooting
 
 - **Nodes not appearing in ComfyUI:**  
   Ensure the repository is cloned into `ComfyUI/custom_nodes/` and restart ComfyUI.
 - **Relay server connection errors:**  
-  Check your internet connection and verify `RELAY_SERVER_URL` in `gemini_relay_client.py`.
-- **PDF parsing issues:**  
-  Confirm that the PDF is not encrypted or image-based (use OCR first if needed).
+  Check your internet connection and verify that `RELAY_SERVER_URL` is correctly set in your environment or in the `.env` file used by this project.
+
 
 
 ---
@@ -121,15 +129,12 @@ To use your own relay server, update the `RELAY_SERVER_URL` in the gemini_relay_
 └────────┬────────────────┘
          │
          ▼
-┌─────────────────┐
-│ Video Prompts   │
-│   (Output)      │
-└─────────────────┘
+┌─────────────────────────────────────
+│                                     │
+│ Video Prompts and iamge prompts     │
+│   (Output)                          │
+└─────────────────┘────────────────────
 ```
-
-### Core Components  
-
-The suite registers three primary nodes with ComfyUI's node system, each designed for a specific stage of the script-to-video conversion pipeline.
 
 ---
 
@@ -221,17 +226,9 @@ The **Prompt Generator** converts storyboard scenes into detailed, AI-ready vide
    ```
 
 2. **Connect to Storyboard Generator**
-   ```
-   prompt_template: "You are a storyboard artist. Create storyboard 
-   panels from the following script text. Use '--- PANEL BREAK ---' 
-   between panels..."
-   ```
 
 3. **Connect to Prompt Generator**
-   ```
-   prompt_template: "You are a prompt engineer for an AI video generator. 
-   Convert the following storyboard scene into detailed prompts..."
-   ```
+   
 
 ### Sample Output Format
 
@@ -267,6 +264,7 @@ script-parser-custom-node/
         ├── s2v_chunker_node.py        # PDF Chunker node
         ├── s2v_storyboard_node.py     # Storyboard Generator
         └── s2v_prompt_gen_node.py     # Prompt Generator
+        and more nodes
 ```
 
 ### Dependencies
@@ -311,16 +309,13 @@ pip install -e .
 
 
 
-### Related Projects
-
-- [Script Parser to Storyboard](https://github.com/Long-form-AI-video-generation/script-parser-to-storyboard) - Complimentary repository.
 
 ---
 
 
 ---
 <p align="center">
- <i>Contributions, feedback, and ideas are always welcome!  let’s build the future of AI video together!</i>
+ <i>Contributions, feedback, and ideas are always welcome! </i>
 </p>
 <div align="center">
 
